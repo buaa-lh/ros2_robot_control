@@ -1,0 +1,4 @@
+control_node:
+    update_rate: 
+        type: int
+        default_value: 500
