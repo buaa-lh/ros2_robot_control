@@ -18,6 +18,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   "rcpputils"
   "realtime_tools"
   "generate_parameter_library"
+  "sensor_msgs"
 )
 
 foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
