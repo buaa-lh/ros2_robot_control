@@ -4,6 +4,7 @@
 #include "realtime_tools/realtime_buffer.h"
 #include "realtime_tools/realtime_publisher.h"
 #include "sensor_msgs/msg/joint_state.hpp"
+#include "urdf/model.h"
 namespace control_node
 {
 
@@ -19,11 +20,12 @@ namespace control_node
             std::shared_ptr<rclcpp::Executor> executor_;
             int update_rate_;
             Params params_;
+            std::string robot_description_;
             std::shared_ptr<ParamListener> param_listener_;
             realtime_tools::RealtimeBuffer<sensor_msgs::msg::JointState::SharedPtr> real_time_buffer_;
             rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_state_publisher_;
             std::shared_ptr<realtime_tools::RealtimePublisher<sensor_msgs::msg::JointState>> real_time_publisher_;
-
+            urdf::Model robot_model_;
 
     };
 

@@ -13,7 +13,8 @@ namespace control_node
     
         params_ = param_listener_->get_params();
         update_rate_ = params_.update_rate;
-
+        robot_description_ = this->get_parameter("robot_description").as_string();
+        robot_model_.initString(robot_description_);
         joint_state_publisher_ = this->create_publisher<sensor_msgs::msg::JointState>("joint_states", 10);
         real_time_publisher_ = std::make_shared<realtime_tools::RealtimePublisher<sensor_msgs::msg::JointState>>(joint_state_publisher_);
     }
@@ -27,7 +28,7 @@ namespace control_node
 void control_node::ControlManager::read(const rclcpp::Time &t, const rclcpp::Duration &period)
 {
     auto states = std::make_shared<sensor_msgs::msg::JointState>();
-    states->name = {"1", "2" ,"3" ,"4", "5" ,"6" "7"};
+    states->name = {"fr3_joint1", "fr3_joint2" ,"fr3_joint3" ,"fr3_joint4", "fr3_joint5" ,"fr3_joint6", "fr3_joint7"};
     states->position = {std::sin(2 * t.seconds()),std::cos(2 * t.seconds()),0,0,0,0,0};
     states->header.stamp = t;
     if(real_time_publisher_->trylock())
