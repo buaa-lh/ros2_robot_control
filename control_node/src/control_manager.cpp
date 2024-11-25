@@ -15,10 +15,9 @@ namespace control_node
         update_rate_ = params_.update_rate;
         robot_description_ = this->get_parameter("robot_description").as_string();
         robot_model_.initString(robot_description_);
-        for(auto j : robot_model_.joints_)
+        for(auto j : robot_model_.links_)
         {
-            std::cout << j.first << " " << j.second->type <<  " connect " << j.second->parent_link_name << " to " << j.second->child_link_name << std::endl;
-            
+            std::cout << j.first << " " << (j.second->parent_joint ? j.second->parent_joint->name : "null") << std::endl;
         }
         
         joint_state_publisher_ = this->create_publisher<sensor_msgs::msg::JointState>("joint_states", 10);
