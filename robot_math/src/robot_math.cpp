@@ -5,11 +5,20 @@
 #include "matlab_code/inverse_kin_general.h"
 #include "matlab_code/forward_kin_general.h"
 #include "matlab_code/m_c_g_matrix.h"
+#include <iostream>
 #include <fstream>
+#include "urdf/model.h"
+#include "robot_math/coder_array.h"
 
 namespace robot_math
 {
 
+    Eigen::Matrix4d make_transform(const Eigen::Matrix3d &R, const Eigen::Vector3d &t)
+    {
+        Eigen::Matrix4d T;
+        T << R, t, 0, 0, 0, 1;
+        return T;
+    }
     Eigen::Matrix4d pose2T(const std::vector<double> &pose)
     {
         Eigen::Vector3d rv(pose[3], pose[4], pose[5]);
@@ -21,7 +30,186 @@ namespace robot_math
         T.block(0, 0, 3, 3) = angax.toRotationMatrix();
         return T;
     }
+    void print_robot(const Robot &robot)
+    {
+        std::cout << robot.dof << "\n";
+        int dof = static_cast<int>(robot.dof);
+        Eigen::Map<const Eigen::Matrix4d> ME(robot.ME);
+        Eigen::Map<const Eigen::Matrix4d> TCP(robot.TCP);
+        std::cout << "ME:\n" << ME << "\n" << "TCP:\n" << TCP << "\n";
+        std::cout << "com:\n";
+        for(int i = 0; i < dof; i++)
+        {
+            std::cout << robot.com.at(i, 0) << " " << robot.com.at(i, 1) << " " << robot.com.at(i, 2) << "\n";
+        }
 
+        std::cout << "A:\n";
+        for(int i = 0; i < dof; i++)
+        {
+            std::cout << robot.A.at(i, 0) << " " << robot.A.at(i, 1) << " " << robot.A.at(i, 2) << " "
+                       << robot.A.at(i, 3) << " " << robot.A.at(i, 4) << " " << robot.A.at(i, 5)<< "\n";
+        }
+
+        std::cout << "inertia:\n";
+        for (int k = 0; k < dof; k++)
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                for (int j = 0; j < 3; j++)
+                {
+                    std::cout << robot.inertia.at(i, j, k) << " ";
+                }
+                std::cout << "\n";
+            }
+            std::cout << "\n";
+        }
+
+        std::cout << "M:\n";
+        for (int k = 0; k < dof; k++)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                for (int j = 0; j < 4; j++)
+                {
+                    std::cout << robot.M.at(i, j, k) << " ";
+                }
+                std::cout << "\n";
+            }
+            std::cout << "\n";
+        }
+    }
+    Robot urdf2Robot(const std::string &description)
+    {
+        urdf::Model urdf_model;
+        urdf_model.initString(description);
+        std::vector<urdf::LinkSharedPtr> bodies;
+        for (auto link : urdf_model.links_)
+        {
+            if (link.second->parent_joint)
+            {
+                bodies.push_back(link.second);
+                // std::cout << link.second->parent_joint->name << std::endl;
+                // std::cout << link.first << std::endl;
+            }
+        }
+        int n = bodies.size();
+        int dof = 0;
+        coder::array<double, 1U> mass;
+        mass.set_size(n);
+        coder::array<double, 3U> inertia;
+        inertia.set_size(3, 3, n);
+        coder::array<double, 2U> A;
+        A.set_size(n, 6);
+        coder::array<double, 3U> M;
+        M.set_size(4, 4, n);
+        coder::array<double, 2U> com;
+        com.set_size(n, 3);
+        Robot robot;
+        Eigen::Map<Eigen::Matrix4d> base(robot.ME);
+        Eigen::Map<Eigen::Matrix4d> TCP(robot.TCP);
+        Eigen::Map<Eigen::Vector3d> gravity(robot.gravity);
+        base = Eigen::Matrix4d::Identity();
+        TCP = Eigen::Matrix4d::Identity();
+        gravity = Eigen::Vector3d(0, 0, -9.8);
+        for (int i = 0; i < n; i++)
+        {
+            urdf::Pose pose = bodies[i]->parent_joint->parent_to_joint_origin_transform;
+            Eigen::Quaterniond q(pose.rotation.w, pose.rotation.x, pose.rotation.y, pose.rotation.z);
+            auto R = q.toRotationMatrix();
+            auto t = Eigen::Vector3d(pose.position.x, pose.position.y, pose.position.z);
+            auto joint_transform = base * make_transform(R, t);
+            double m = 0;
+            Eigen::Matrix3d I = Eigen::Matrix3d::Zero();
+ 
+            auto link_inertia = bodies[i]->inertial;
+            if(link_inertia)
+            {
+                m = link_inertia->mass;
+                pose = link_inertia->origin;
+                Eigen::Quaterniond q(pose.rotation.w, pose.rotation.x, pose.rotation.y, pose.rotation.z);
+                R = q.toRotationMatrix();
+                t = Eigen::Vector3d(pose.position.x, pose.position.y, pose.position.z);
+                I << link_inertia->ixx, link_inertia->ixy, link_inertia->ixz,
+                link_inertia->ixy, link_inertia->iyy, link_inertia->iyz,
+                link_inertia->ixz, link_inertia->iyz, link_inertia->izz;
+            }
+
+            int type = bodies[i]->parent_joint->type;
+            if (type == urdf::Joint::FIXED)
+            {
+                base = joint_transform;
+                if (dof > 0 && m > 0)
+                {
+                    Eigen::Map<Eigen::Matrix3d> inert(&inertia[(dof - 1) * 9]);
+                    auto T = joint_transform * make_transform(R, t);
+                    auto R = T.block<3, 3>(0, 0);
+                    auto t = T.block<3, 1>(0, 3);
+                    inert += R * I * R.transpose() + m * (t.squaredNorm() * Eigen::Matrix3d::Identity() - t * t.transpose());
+                    double rho = m / (mass[dof - 1] + m);
+                    auto c = rho * t + (1 - rho) * Eigen::Vector3d(com.at(dof - 1, 0), com.at(dof - 1, 1), com.at(dof - 1, 2));
+                    com.at(dof - 1, 0) = c[0];
+                    com.at(dof - 1, 1) = c[1];
+                    com.at(dof - 1, 2) = c[2];
+                    mass[dof - 1] += m;
+                }
+            }
+            else
+            {
+                dof++;
+                Eigen::Map<Eigen::Matrix3d> inert(&inertia[(dof - 1) * 9]);
+                inert =  R * I * R.transpose()  + m * (t.squaredNorm() * Eigen::Matrix3d::Identity() - t * t.transpose());
+                mass[dof - 1] = m;
+                com.at(dof - 1, 0) = pose.position.x;
+                com.at(dof - 1, 1) = pose.position.y;
+                com.at(dof - 1, 2) = pose.position.z;
+                Eigen::Map<Eigen::Matrix4d> MM(&M[(dof - 1) * 16]);
+                MM = joint_transform;
+                auto axis = bodies[i]->parent_joint->axis;
+                if (type == urdf::Joint::REVOLUTE)
+                {
+                    A.at(dof - 1, 0) = axis.x;
+                    A.at(dof - 1, 1) = axis.y;
+                    A.at(dof - 1, 2) = axis.z;
+                    A.at(dof - 1, 3) = 0;
+                    A.at(dof - 1, 4) = 0;
+                    A.at(dof - 1, 5) = 0;
+                }
+                else
+                {
+                    A.at(dof - 1, 0) = 0;
+                    A.at(dof - 1, 1) = 0;
+                    A.at(dof - 1, 2) = 0;
+                    A.at(dof - 1, 3) = axis.x;
+                    A.at(dof - 1, 4) = axis.y;
+                    A.at(dof - 1, 5) = axis.z;
+                }
+                base = Eigen::Matrix4d::Identity();
+            }
+        }
+
+        robot.dof = dof;
+        robot.mass.set_size(dof);
+        robot.com.set_size(dof, 3);
+        robot.A.set_size(dof, 6);
+        robot.M.set_size(4, 4, dof);
+        robot.inertia.set_size(3, 3, dof);
+        for (int i = 0; i < dof; i++)
+        {
+            robot.mass[i] = mass[i];
+            robot.com.at(i, 0) = com.at(i, 0);
+            robot.com.at(i, 1) = com.at(i, 1);
+            robot.com.at(i, 2) = com.at(i, 2);
+            robot.A.at(i, 0) = A.at(i, 0);
+            robot.A.at(i, 1) = A.at(i, 1);
+            robot.A.at(i, 2) = A.at(i, 2);
+            robot.A.at(i, 3) = A.at(i, 3);
+            robot.A.at(i, 4) = A.at(i, 4);
+            robot.A.at(i, 5) = A.at(i, 5);
+        }
+        std::copy(&M[0], &M[0] + dof * 16, &robot.M[0]);
+        std::copy(&inertia[0], &inertia[0] + dof * 9, &robot.inertia[0]);
+        return robot;
+    }
     Eigen::Matrix3d exp_r(const Eigen::Vector3d &r)
     {
         if (r.norm() > 1e-10)

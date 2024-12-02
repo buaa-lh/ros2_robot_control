@@ -5,6 +5,14 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+
+set(THIS_PACKAGE_INCLUDE_DEPENDS
+  "urdf"
+)
+
+foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
+  find_package(${Dependency} REQUIRED)
+endforeach()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_ros REQUIRED)
@@ -35,7 +43,8 @@ target_include_directories(robot_math PUBLIC
   $<INSTALL_INTERFACE:include/${PROJECT_NAME}>
   )
 
-  
+ ament_target_dependencies(robot_math PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS})
+ target_link_libraries(robot_math PUBLIC jsoncpp)
 # Causes the visibility macros to use dllexport rather than dllimport,
 # which is appropriate when building the dll but not consuming it.
 target_compile_definitions(robot_math PRIVATE "ROBOT_MATH_BUILDING_LIBRARY")
@@ -67,8 +76,8 @@ install(TARGETS test_robot_math
         DESTINATION lib/${PROJECT_NAME})               
 
 #ament_target_dependencies(robot_monitor rclcpp std_msgs sensor_msgs)
-
-target_link_libraries(test_robot_math robot_math)
+#ament_target_dependencies(test_robot_math PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS})
+target_link_libraries(test_robot_math PUBLIC robot_math)
 
 
 if(BUILD_TESTING)

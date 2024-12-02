@@ -30,6 +30,8 @@ namespace robot_math
 		double gravity[3];
 		double TCP[16];
 	};
+	 Robot urdf2Robot(const std::string &description);
+	 void print_robot(const Robot &robot);
     // pose: first three are position
 	Eigen::Matrix4d pose2T(const std::vector<double> &pose);
 	std::vector<double> T2pose(const Eigen::Matrix4d &T);
@@ -43,6 +45,7 @@ namespace robot_math
 	Eigen::Matrix4d invertT(const Eigen::Matrix4d &T);
 	Eigen::Matrix6d adjoint_T(const Eigen::Matrix4d &T);
 	Eigen::Matrix6d adjoint_V(const Eigen::Vector6d &V);
+	Eigen::Matrix4d make_transform(const Eigen::Matrix3d &R, const Eigen::Vector3d &t);
 
 	Eigen::MatrixXd pInv(const Eigen::MatrixXd &matrix, double tol = 1e-4);
 	Eigen::Vector3d cond_Matrix(const Eigen::MatrixXd &A);
