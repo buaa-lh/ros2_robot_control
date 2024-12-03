@@ -9,6 +9,7 @@
 #include <fstream>
 #include "urdf/model.h"
 #include "robot_math/coder_array.h"
+#include <iomanip>
 
 namespace robot_math
 {
@@ -32,22 +33,52 @@ namespace robot_math
     }
     void print_robot(const Robot &robot)
     {
+        std::cout << "dof:\n";
         std::cout << robot.dof << "\n";
         int dof = static_cast<int>(robot.dof);
         Eigen::Map<const Eigen::Matrix4d> ME(robot.ME);
         Eigen::Map<const Eigen::Matrix4d> TCP(robot.TCP);
-        std::cout << "ME:\n" << ME << "\n" << "TCP:\n" << TCP << "\n";
+        std::cout << "ME:\n";
+        for(int i =0; i < 4; i++)
+            {
+                for(int j = 0; j < 4; j++)
+                    std::cout << std::setw(10) << std::fixed  << std::setprecision(4) << ME(i,j);
+                std::cout << "\n";
+            }
+        std::cout << "TCP:\n";
+        for(int i =0; i < 4; i++)
+            {
+                for(int j = 0; j < 4; j++)
+                    std::cout << std::setw(10) << std::fixed  << std::setprecision(4) << TCP(i,j);
+                std::cout << "\n";
+            }
         std::cout << "com:\n";
         for(int i = 0; i < dof; i++)
         {
-            std::cout << robot.com.at(i, 0) << " " << robot.com.at(i, 1) << " " << robot.com.at(i, 2) << "\n";
+            std::cout << std::setw(10) << std::fixed  << std::setprecision(4) << robot.com.at(i, 0);
+            std::cout << std::setw(10) << std::fixed  << std::setprecision(4) << robot.com.at(i, 1);
+            std::cout << std::setw(10) << std::fixed  << std::setprecision(4) << robot.com.at(i, 2);
+            std::cout << "\n";
         }
 
+        std::cout << "mass:\n";
+        for(int i = 0; i < dof; i++)
+        {
+            std::cout << std::setw(10) << std::fixed  << std::setprecision(4) << robot.mass[i];
+            
+        }
+        std::cout << "\n";
         std::cout << "A:\n";
         for(int i = 0; i < dof; i++)
         {
-            std::cout << robot.A.at(i, 0) << " " << robot.A.at(i, 1) << " " << robot.A.at(i, 2) << " "
-                       << robot.A.at(i, 3) << " " << robot.A.at(i, 4) << " " << robot.A.at(i, 5)<< "\n";
+            std::cout << std::setw(10) << std::fixed  << std::setprecision(4) << robot.A.at(i, 0);
+            std::cout << std::setw(10) << std::fixed  << std::setprecision(4) << robot.A.at(i, 1);
+            std::cout << std::setw(10) << std::fixed  << std::setprecision(4) << robot.A.at(i, 2);
+            std::cout << std::setw(10) << std::fixed  << std::setprecision(4) << robot.A.at(i, 3);
+            std::cout << std::setw(10) << std::fixed  << std::setprecision(4) << robot.A.at(i, 4);
+            std::cout << std::setw(10) << std::fixed  << std::setprecision(4) << robot.A.at(i, 5);
+            std::cout << "\n";
+            
         }
 
         std::cout << "inertia:\n";
@@ -57,7 +88,7 @@ namespace robot_math
             {
                 for (int j = 0; j < 3; j++)
                 {
-                    std::cout << robot.inertia.at(i, j, k) << " ";
+                    std::cout << std::setw(10) << std::fixed  << std::setprecision(4) << robot.inertia.at(i, j, k);
                 }
                 std::cout << "\n";
             }
@@ -71,27 +102,32 @@ namespace robot_math
             {
                 for (int j = 0; j < 4; j++)
                 {
-                    std::cout << robot.M.at(i, j, k) << " ";
+                   std::cout << std::setw(10) << std::fixed  << std::setprecision(4) << robot.M.at(i, j, k) << " ";
                 }
                 std::cout << "\n";
             }
             std::cout << "\n";
         }
     }
-    Robot urdf2Robot(const std::string &description)
+    Robot urdf2Robot(const std::string &description, const std::string &link_name)
     {
         urdf::Model urdf_model;
         urdf_model.initString(description);
         std::vector<urdf::LinkSharedPtr> bodies;
+        urdf::LinkSharedPtr last_link;
         for (auto link : urdf_model.links_)
         {
-            if (link.second->parent_joint)
-            {
-                bodies.push_back(link.second);
-                // std::cout << link.second->parent_joint->name << std::endl;
-                // std::cout << link.first << std::endl;
-            }
+            last_link = link.second;
+            if(link.first == link_name)
+                break;
         }
+        bodies.push_back(last_link);
+        while(last_link = last_link->getParent())
+        {
+            bodies.push_back(last_link);
+        }
+        std::reverse(bodies.begin(), bodies.end());
+        bodies.erase(bodies.begin());//remove base
         int n = bodies.size();
         int dof = 0;
         coder::array<double, 1U> mass;
@@ -117,7 +153,7 @@ namespace robot_math
             Eigen::Quaterniond q(pose.rotation.w, pose.rotation.x, pose.rotation.y, pose.rotation.z);
             auto R = q.toRotationMatrix();
             auto t = Eigen::Vector3d(pose.position.x, pose.position.y, pose.position.z);
-            auto joint_transform = base * make_transform(R, t);
+            Eigen::Matrix4d joint_transform = base * make_transform(R, t);
             double m = 0;
             Eigen::Matrix3d I = Eigen::Matrix3d::Zero();
  
@@ -141,12 +177,12 @@ namespace robot_math
                 if (dof > 0 && m > 0)
                 {
                     Eigen::Map<Eigen::Matrix3d> inert(&inertia[(dof - 1) * 9]);
-                    auto T = joint_transform * make_transform(R, t);
-                    auto R = T.block<3, 3>(0, 0);
-                    auto t = T.block<3, 1>(0, 3);
+                    Eigen::Matrix4d T = joint_transform * make_transform(R, t);
+                    R = T.block<3, 3>(0, 0);
+                    t = T.block<3, 1>(0, 3);
                     inert += R * I * R.transpose() + m * (t.squaredNorm() * Eigen::Matrix3d::Identity() - t * t.transpose());
                     double rho = m / (mass[dof - 1] + m);
-                    auto c = rho * t + (1 - rho) * Eigen::Vector3d(com.at(dof - 1, 0), com.at(dof - 1, 1), com.at(dof - 1, 2));
+                    Eigen::Vector3d c = rho * t + (1 - rho) * Eigen::Vector3d(com.at(dof - 1, 0), com.at(dof - 1, 1), com.at(dof - 1, 2));
                     com.at(dof - 1, 0) = c[0];
                     com.at(dof - 1, 1) = c[1];
                     com.at(dof - 1, 2) = c[2];

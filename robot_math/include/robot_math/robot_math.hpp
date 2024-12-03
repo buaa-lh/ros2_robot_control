@@ -30,7 +30,7 @@ namespace robot_math
 		double gravity[3];
 		double TCP[16];
 	};
-	 Robot urdf2Robot(const std::string &description);
+	 Robot urdf2Robot(const std::string &description, const std::string &link_name = "");
 	 void print_robot(const Robot &robot);
     // pose: first three are position
 	Eigen::Matrix4d pose2T(const std::vector<double> &pose);
