@@ -248,7 +248,7 @@ namespace robot_math
     }
     Eigen::Matrix3d exp_r(const Eigen::Vector3d &r)
     {
-        if (r.norm() > 1e-10)
+        if (r.norm() > std::numeric_limits<double>::epsilon())
         {
             Eigen::AngleAxisd angax(r.norm(), r.normalized());
             return angax.toRotationMatrix();
@@ -762,10 +762,22 @@ namespace robot_math
     }
     void jacobian_matrix(const Robot *robot, const std::vector<double> &q, Eigen::MatrixXd &J, Eigen::Matrix4d &T)
     {
-        J.resize(6, q.size());
-        coder::array<double, 2> J_array;
-        J_array.set(J.data(), 6, J.cols());
-        ::jacobian_matrix(robot, q, J_array, T.data());
+        int n = q.size();
+        J.resize(6, n);
+        Eigen::Map<const Eigen::Matrix4d> ME(robot->ME);
+        Eigen::Map<const Eigen::Matrix4d> TCP(robot->TCP);
+        T = ME * TCP;
+        for(int i = n; i >= 1; i--)
+        {
+            Eigen::Vector6d Ai(robot->A.at(i - 1, 0), robot->A.at(i - 1, 1),robot->A.at(i - 1, 2),
+                                robot->A.at(i - 1, 3),robot->A.at(i - 1, 4),robot->A.at(i - 1, 5));
+            J.col(i - 1) = adjoint_T(invertT(T)) * Ai;
+            T = Eigen::Map<const Eigen::Matrix4d>(robot->M.data() + 16 * (i - 1)) * exp_twist(Ai * q[i - 1]) * T;
+        }
+        
+        // coder::array<double, 2> J_array;
+        // J_array.set(J.data(), 6, J.cols());
+        // ::jacobian_matrix(robot, q, J_array, T.data());
     }
 
     void m_c_g_matrix(const Robot *robot, const std::vector<double> &q, const std::vector<double> &dq, Eigen::MatrixXd &M,
