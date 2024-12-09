@@ -20,6 +20,8 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   "generate_parameter_library"
   "sensor_msgs"
   "urdf"
+  "std_msgs"
+  "robot_math"
 )
 
 foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
@@ -45,7 +47,10 @@ target_link_libraries(control_node PUBLIC
                       control_node_parameters
 )
 
-
+# install(
+#   DIRECTORY include/
+#   DESTINATION include/${PROJECT_NAME}
+# )
 
 install(TARGETS control_node
   DESTINATION lib/${PROJECT_NAME})

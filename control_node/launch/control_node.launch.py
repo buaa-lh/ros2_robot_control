@@ -25,6 +25,9 @@ import xacro
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchContext, LaunchDescription
 
+from launch.actions import RegisterEventHandler
+from launch.events.process import ProcessStarted
+from launch.event_handlers.on_process_start import OnProcessStart
 
 
 def generate_launch_description():
@@ -84,8 +87,9 @@ def generate_launch_description():
     
     control_node = Node(
         package="control_node",
+        name = "control_node",
         executable="control_node",
-        parameters=[params, {"robot_description": robot_description}],
+        # parameters=[params, {"robot_description": robot_description}],
         # arguments=["--ros-args", "--params-file", params],
         output="both",
     )
@@ -111,11 +115,31 @@ def generate_launch_description():
             #     "fer, fr3, fp3",
             # )
             ]
+    # already_started_nodes = set()
 
-    nodes = arguments + [
+    def start_robot_state_publisher_node(event: ProcessStarted, context: LaunchContext):
+        print('start sate publisher')
+        return robot_state_publisher
+
+    def start_control_node(event: ProcessStarted, context: LaunchContext):
+        print('start control node')
+        return control_node
+
+    def start_rviz_node(event: ProcessStarted, context: LaunchContext):
+        print('start control node')
+        return rviz_node
+    
+    handlers = [
+        RegisterEventHandler(event_handler=OnProcessStart(target_action=rviz_node,
+                                                          on_start=robot_state_publisher)),
+        RegisterEventHandler(event_handler=OnProcessStart(target_action=robot_state_publisher,
+                                                          on_start=start_control_node)),
+    ]
+
+    nodes = arguments + handlers + [
             rviz_node,
-            robot_state_publisher,
-            control_node,
+            # robot_state_publisher,
+            # control_node,
             ]
 
     return LaunchDescription(nodes)

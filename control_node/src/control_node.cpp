@@ -82,7 +82,11 @@ int main(int argc, char ** argv)
           cm->get_logger(), "Successful set up FIFO RT scheduling policy with priority %i.",
           thread_priority);
       }
+
       RCLCPP_INFO(cm->get_logger(), "%i.",cm->get_update_rate());
+
+      cm->init_robot();
+
       // for calculating sleep time
       auto const period = std::chrono::nanoseconds(1'000'000'000 / cm->get_update_rate());
       auto const cm_now = std::chrono::nanoseconds(cm->now().nanoseconds());
@@ -91,7 +95,6 @@ int main(int argc, char ** argv)
 
       // for calculating the measured period of the loop
       rclcpp::Time previous_time = cm->now();
-
       while (rclcpp::ok())
       {
         // calculate measured period
@@ -109,7 +112,7 @@ int main(int argc, char ** argv)
         // printf("%.6f\n", measured_period.nanoseconds()/1e9);
         std::this_thread::sleep_until(next_iteration_time);
       }
-
+      cm->shutdown_robot();
       // cm->shutdown_async_controllers_and_components();
     });
 
