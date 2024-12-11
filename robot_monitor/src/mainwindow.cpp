@@ -20,10 +20,13 @@ Subscriber::Subscriber(MainWindow *wnd) : Node("robot_monitor_subscriber"), main
         // RCLCPP_INFO(this->get_logger(), "I heard: '%f'", 1);
         rclcpp::Time time = msg->header.stamp;
         std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> msg_time(std::chrono::nanoseconds(time.nanoseconds()));
-        mainWnd->pushMessage(std::chrono::duration<double>(msg_time - start_time).count(), msg);
+        if(msg_time < start_time)
+            mainWnd->pushMessage(time.seconds(), msg);
+        else
+            mainWnd->pushMessage(std::chrono::duration<double>(msg_time - start_time).count(), msg);
     };
     subscription_ =
-        this->create_subscription<sensor_msgs::msg::JointState>("joint_states", 10, topic_callback);
+        this->create_subscription<sensor_msgs::msg::JointState>("joint_states", rclcpp::SensorDataQoS(), topic_callback);
 }
 
 MainWindow::MainWindow(QWidget *parent)
