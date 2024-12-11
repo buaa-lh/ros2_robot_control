@@ -28,6 +28,13 @@ foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
   find_package(${Dependency} REQUIRED)
 endforeach()
 
+set(Boost_USE_STATIC_LIBS OFF) 
+set(Boost_USE_MULTITHREADED ON)  
+set(Boost_USE_STATIC_RUNTIME OFF) 
+find_package(Boost 1.83.0 COMPONENTS odeint) 
+
+# include_directories(${Boost_INCLUDE_DIRS}) 
+
 generate_parameter_library(control_node_parameters
   src/control_node_parameters.yaml
 )
@@ -45,6 +52,7 @@ ament_target_dependencies(control_node PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS})
 
 target_link_libraries(control_node PUBLIC
                       control_node_parameters
+                      ${Boost_LIBRARIES}
 )
 
 # install(

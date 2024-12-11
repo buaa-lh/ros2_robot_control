@@ -89,6 +89,15 @@ def generate_launch_description():
         package="control_node",
         name = "control_node",
         executable="control_node",
+        parameters=[params],
+        # arguments=["--ros-args", "--params-file", params],
+        output="both",
+    )
+    joint_state_publisher_node = Node(
+        package="joint_state_publisher_gui",
+        name = "joint_state_publisher_gui",
+        executable="joint_state_publisher_gui",
+        remappings=[('/joint_states', '/gui/joint_states')],
         # parameters=[params, {"robot_description": robot_description}],
         # arguments=["--ros-args", "--params-file", params],
         output="both",
@@ -138,6 +147,12 @@ def generate_launch_description():
 
     nodes = arguments + handlers + [
             rviz_node,
+            # joint_state_publisher_node,
+            Node(
+            package='robot_monitor',
+            executable='robot_monitor',
+            output="screen",
+            ),
             # robot_state_publisher,
             # control_node,
             ]
