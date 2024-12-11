@@ -152,7 +152,10 @@ namespace control_node
         dx.resize(2 * n + m);
         std::copy(dq.begin(), dq.end(), dx.begin());
         Eigen::MatrixXd M = mass_matrix(&robot_, q);
-        Eigen::Map<Eigen::VectorXd>(&dx[n], n) = M.ldlt().solve(tau - gvtao - 1*Eigen::Map<Eigen::VectorXd>(&dq[0], dof_));
+        Eigen::VectorXd damping = Eigen::VectorXd::Zero(n);
+        for(int i = 0; i < dof_; i++)
+            damping(i) = dq[i] * robot_model_.joints_[joint_names_[i]]->dynamics->damping;
+        Eigen::Map<Eigen::VectorXd>(&dx[n], n) = M.ldlt().solve(tau - gvtao - damping);
         std::copy(cmd.begin() + n, cmd.end(), dx.begin() + 2 * n);
     }
     void ControlManager::simulation_observer(const std::vector<double> &x, double t)
@@ -210,9 +213,16 @@ namespace control_node
 
     std::vector<double> ControlManager::simulation_controller(double t, const std::vector<double> &x, const Eigen::MatrixXd &fext)
     {
-        std::vector<double> cmd;
-        cmd.resize(dof_);
-        std::fill(cmd.begin(), cmd.end(), 0.0);
+        int n = dof_;
+        std::vector<double> q(n), dq(n), ddq(n);
+        std::fill(ddq.begin(), ddq.end(), 0.0);
+        std::copy(x.begin(), x.begin() + n, q.begin());
+        std::copy(x.begin() + n, x.begin() + 2 * n, dq.begin());
+
+        std::vector<double> cmd(n);
+        for(int i = 0; i < n; i++)
+            cmd[i] = -dq[i];
+        //std::fill(cmd.begin(), cmd.end(), 0.0);
         return cmd;
     }
 
