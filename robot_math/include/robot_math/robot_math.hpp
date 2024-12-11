@@ -30,8 +30,9 @@ namespace robot_math
 		double gravity[3];
 		double TCP[16];
 	};
-	 Robot urdf2Robot(const std::string &description, const std::string &link_name = "");
-	 void print_robot(const Robot &robot);
+	Robot urdf2Robot(const std::string &description, const std::string &link_name = "");
+	void print_robot(const Robot &robot);
+	void print_code_array(const coder::array<double, 3> &array);
     // pose: first three are position
 	Eigen::Matrix4d pose2T(const std::vector<double> &pose);
 	std::vector<double> T2pose(const Eigen::Matrix4d &T);
@@ -89,13 +90,22 @@ namespace robot_math
 
 	void forward_kin_general(const Robot *robot, const std::vector<double> &q, Eigen::Matrix4d &T);
 
+	Eigen::Matrix6d spatial_inertia_matrix(const Eigen::Matrix3d &I, double m, const Eigen::Vector3d &com);
 	// load robot structure in Json file
 	Robot loadRobot(const char *filename);
-
+    
+    Eigen::VectorXd get_ext_torque(const Robot *robot, const std::vector<double> &q, const Eigen::MatrixXd& fext);
 	// jacobian of ME in the robot, not TCP
 	void jacobian_matrix(const Robot *robot, const std::vector<double> &q, Eigen::MatrixXd &J, Eigen::Matrix4d &T);
-
+    
+	void jacobian_matrix_all(const Robot *robot, const std::vector<double> &q, coder::array<double, 3> &J);
 	// TCP
+    Eigen::MatrixXd mass_matrix(const Robot *robot, const std::vector<double> &q);
+	
+	Eigen::VectorXd inverse_dynamics(const Robot *robot, const std::vector<double> &q,
+	                                 const std::vector<double> &dq, const std::vector<double> &ddq, 
+									 const Eigen::MatrixXd& fext);
+
 	void m_c_g_matrix(const Robot *robot, const std::vector<double> &q,
 					  const std::vector<double> &dq, Eigen::MatrixXd &M,
 					  Eigen::MatrixXd &C, Eigen::VectorXd &G, Eigen::MatrixXd &J, Eigen::MatrixXd &dJ,
