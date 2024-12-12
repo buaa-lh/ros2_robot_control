@@ -58,9 +58,9 @@ def generate_launch_description():
         franka_xacro_filepath, mappings={"hand": "false", "ee_id": "frank_hand"}
     ).toprettyxml(indent="  ")
 
-    with open("urdf/fr3.urdf", "w") as f:
-        f.write(robot_description)
-        f.close()
+    # with open("urdf/fr3.urdf", "w") as f:
+    #     f.write(robot_description)
+    #     f.close()
 
     params = PathJoinSubstitution(
         [
