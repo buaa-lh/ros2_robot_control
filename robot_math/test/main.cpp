@@ -1,6 +1,7 @@
 #include "robot_math/robot_math.hpp"
 #include <iostream>
 #include <fstream>
+#include <chrono>
 using namespace robot_math;
 
 int main()
@@ -8,7 +9,7 @@ int main()
     std::ifstream fin("/home/wjc/ros2_ws/urdf/fr3.urdf");
     std::string description((std::istreambuf_iterator<char>(fin)),
                             std::istreambuf_iterator<char>());
-    Robot robot = urdf2Robot(description);
+    Robot robot = urdf_to_robot(description);
     print_robot(robot);
     std::vector<double> q{1,2,3,4,5,6,7};
     std::vector<double> dq{1,2,3,4,5,6,7};
@@ -27,7 +28,24 @@ int main()
             0, 0, 0, 0, 0, 1, 6;
     //std::cout << get_ext_torque(&robot, q, Fext) << "\n";
     //  std::cout << inverse_dynamics(&robot, q, dq, ddq, Fext) << "\n";
-    std::cout << mass_matrix(&robot, q) << "\n";
+    Eigen::MatrixXd M, C, Jb, dJb, dM;
+    Eigen::Matrix4d Tb, dTb;
+    Eigen::VectorXd g;
+    auto t = std::chrono::system_clock::now();
+    m_c_g_matrix(&robot, q, dq, M, C, g, Jb, dJb, dM, dTb, Tb);
+    auto t2 = std::chrono::system_clock::now();
+    std::cout << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t).count() << std::endl;
+    std::cout << "dM:\n";
+    std::cout << dM;
+    std::cout << "\nC:\n";
+    std::cout << C;
+    std::cout << "\ng:\n";
+    std::cout << g;
+    std::cout << "\ndJb:\n";
+    std::cout << dJb;
+    std::cout << "\ndTb:\n";
+    std::cout << dTb << "\n";
+    //std::cout << mass_matrix(&robot, q) << "\n";
     //std::cout << description << std::endl;
     return 0;
 }

@@ -75,7 +75,7 @@ namespace control_node
     {
         if (!robot_description_.empty())
         {
-            robot_ = robot_math::urdf2Robot(robot_description_);
+            robot_ = robot_math::urdf_to_robot(robot_description_);
             robot_math::print_robot(robot_);
             robot_model_.initString(robot_description_);
             for (auto j : robot_model_.joints_)

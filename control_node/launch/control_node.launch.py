@@ -103,6 +103,12 @@ def generate_launch_description():
         output="both",
     )
 
+    robot_monitor = Node(
+            package='robot_monitor',
+            executable='robot_monitor',
+            output="screen",
+            )
+
     arguments = [
             # DeclareLaunchArgument(
             #     load_gripper_parameter_name,
@@ -138,21 +144,22 @@ def generate_launch_description():
         print('start control node')
         return rviz_node
     
+    def start_monitor_node(event: ProcessStarted, context: LaunchContext):
+        print('start control node')
+        return robot_monitor
+    
     handlers = [
-        RegisterEventHandler(event_handler=OnProcessStart(target_action=rviz_node,
-                                                          on_start=robot_state_publisher)),
         RegisterEventHandler(event_handler=OnProcessStart(target_action=robot_state_publisher,
+                                                          on_start=start_rviz_node)),
+        RegisterEventHandler(event_handler=OnProcessStart(target_action=rviz_node,
+                                                          on_start=start_monitor_node)),
+        RegisterEventHandler(event_handler=OnProcessStart(target_action=robot_monitor,
                                                           on_start=start_control_node)),
     ]
 
     nodes = arguments + handlers + [
-            rviz_node,
+            robot_state_publisher,
             # joint_state_publisher_node,
-            Node(
-            package='robot_monitor',
-            executable='robot_monitor',
-            output="screen",
-            ),
             # robot_state_publisher,
             # control_node,
             ]

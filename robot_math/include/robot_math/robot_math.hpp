@@ -30,12 +30,12 @@ namespace robot_math
 		double gravity[3];
 		double TCP[16];
 	};
-	Robot urdf2Robot(const std::string &description, const std::string &link_name = "");
+	Robot urdf_to_robot(const std::string &description, const std::string &link_name = "");
 	void print_robot(const Robot &robot);
 	void print_code_array(const coder::array<double, 3> &array);
     // pose: first three are position
-	Eigen::Matrix4d pose2T(const std::vector<double> &pose);
-	std::vector<double> T2pose(const Eigen::Matrix4d &T);
+	Eigen::Matrix4d pose_to_tform(const std::vector<double> &pose);
+	std::vector<double> tform_to_pose(const Eigen::Matrix4d &T);
 	Eigen::Matrix3d so_w(const Eigen::Vector3d &w);
 	Eigen::Matrix4d se_twist(const Eigen::Vector6d &V);
 	Eigen::Vector7d normalize_twist(const Eigen::Vector6d &V);
@@ -43,13 +43,24 @@ namespace robot_math
 	Eigen::Vector3d logR(const Eigen::Matrix3d &R);
 	Eigen::Matrix4d exp_twist(const Eigen::Vector6d &twist);
 	Eigen::Vector6d logT(const Eigen::Matrix4d &T);
-	Eigen::Matrix4d invertT(const Eigen::Matrix4d &T);
+	Eigen::Matrix4d inv_tform(const Eigen::Matrix4d &T);
 	Eigen::Matrix6d adjoint_T(const Eigen::Matrix4d &T);
 	Eigen::Matrix6d adjoint_V(const Eigen::Vector6d &V);
-	Eigen::Matrix4d make_transform(const Eigen::Matrix3d &R, const Eigen::Vector3d &t);
+	Eigen::Matrix4d make_tform(const Eigen::Matrix3d &R, const Eigen::Vector3d &t);
+	Eigen::MatrixXd pinv(const Eigen::MatrixXd &matrix, double tol = 1e-6);
+	Eigen::Vector3d cond_matrix(const Eigen::MatrixXd &A);
 
-	Eigen::MatrixXd pInv(const Eigen::MatrixXd &matrix, double tol = 1e-4);
-	Eigen::Vector3d cond_Matrix(const Eigen::MatrixXd &A);
+	void derivative_tform_inv(const Eigen::Matrix4d &T, const Eigen::Matrix4d &dT, Eigen::Matrix4d & dinvT, Eigen::Matrix4d & invT);
+	void derivative_adjoint_T(const Eigen::Matrix4d &T, const Eigen::Matrix4d &dT, Eigen::Matrix6d &dAdT, Eigen::Matrix6d &AdT);
+
+    // damping least squares
+	Eigen::MatrixXd dx_to_dq(const Eigen::MatrixXd &J, const Eigen::MatrixXd &dx, double con_threshold = 1e6, double lambda = 0.1);
+
+
+	void jacobian_matrix(const Robot *robot, const std::vector<double> &q, Eigen::MatrixXd &J, Eigen::Matrix4d &T);
+	void jacobian_matrix_all(const Robot *robot, const std::vector<double> &q, coder::array<double, 3> &J);
+	void inverse_kin_general(const Robot *robot, Eigen::Matrix4d Td, const std::vector<double> &qref, const double tol[2], std::vector<double> &q, double *flag);
+	void forward_kin_general(const Robot *robot, const std::vector<double> &q, Eigen::Matrix4d &T);
 
 	Eigen::MatrixXd J_sharp(const Eigen::MatrixXd &J, const Eigen::MatrixXd &M); // X x 6
 	Eigen::MatrixXd d_J_sharp(const Eigen::MatrixXd &J, const Eigen::MatrixXd &M, const Eigen::MatrixXd &dJ, const Eigen::MatrixXd &dM);
@@ -86,19 +97,13 @@ namespace robot_math
 
 	Eigen::Vector6d twist_estimate(const Eigen::Matrix4d &Td, const Eigen::Matrix4d &Td_pre, double dt);
 
-	void inverse_kin_general(const Robot *robot, Eigen::Matrix4d Td, const std::vector<double> &qref, const double tol[2], std::vector<double> &q, double *flag);
-
-	void forward_kin_general(const Robot *robot, const std::vector<double> &q, Eigen::Matrix4d &T);
-
 	Eigen::Matrix6d spatial_inertia_matrix(const Eigen::Matrix3d &I, double m, const Eigen::Vector3d &com);
 	// load robot structure in Json file
 	Robot loadRobot(const char *filename);
     
     Eigen::VectorXd get_ext_torque(const Robot *robot, const std::vector<double> &q, const Eigen::MatrixXd& fext);
 	// jacobian of ME in the robot, not TCP
-	void jacobian_matrix(const Robot *robot, const std::vector<double> &q, Eigen::MatrixXd &J, Eigen::Matrix4d &T);
-    
-	void jacobian_matrix_all(const Robot *robot, const std::vector<double> &q, coder::array<double, 3> &J);
+	
 	// TCP
     Eigen::MatrixXd mass_matrix(const Robot *robot, const std::vector<double> &q);
 	
@@ -108,8 +113,8 @@ namespace robot_math
 
 	void m_c_g_matrix(const Robot *robot, const std::vector<double> &q,
 					  const std::vector<double> &dq, Eigen::MatrixXd &M,
-					  Eigen::MatrixXd &C, Eigen::VectorXd &G, Eigen::MatrixXd &J, Eigen::MatrixXd &dJ,
-					  Eigen::MatrixXd &dM, Eigen::Matrix4d &dT, Eigen::Matrix4d &T);
+					  Eigen::MatrixXd &C, Eigen::VectorXd &g, Eigen::MatrixXd &Jb, Eigen::MatrixXd &dJb,
+					  Eigen::MatrixXd &dM, Eigen::Matrix4d &dTb, Eigen::Matrix4d &Tb);
 
 	// jacobian derivative of ME in the robot, not TCP
 	void derivative_jacobian_matrix(const Robot *robot, const std::vector<double> &q, const std::vector<double> &dq,

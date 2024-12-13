@@ -14,13 +14,13 @@
 namespace robot_math
 {
 
-    Eigen::Matrix4d make_transform(const Eigen::Matrix3d &R, const Eigen::Vector3d &t)
+    Eigen::Matrix4d make_tform(const Eigen::Matrix3d &R, const Eigen::Vector3d &t)
     {
         Eigen::Matrix4d T;
         T << R, t, 0, 0, 0, 1;
         return T;
     }
-    Eigen::Matrix4d pose2T(const std::vector<double> &pose)
+    Eigen::Matrix4d pose_to_tform(const std::vector<double> &pose)
     {
         Eigen::Vector3d rv(pose[3], pose[4], pose[5]);
         Eigen::Matrix4d T = Eigen::Matrix4d::Identity();
@@ -125,7 +125,7 @@ namespace robot_math
         }
     }
 
-    Robot urdf2Robot(const std::string &description, const std::string &link_name)
+    Robot urdf_to_robot(const std::string &description, const std::string &link_name)
     {
         urdf::Model urdf_model;
         urdf_model.initString(description);
@@ -169,7 +169,7 @@ namespace robot_math
             Eigen::Quaterniond q(pose.rotation.w, pose.rotation.x, pose.rotation.y, pose.rotation.z);
             auto R = q.toRotationMatrix();
             auto t = Eigen::Vector3d(pose.position.x, pose.position.y, pose.position.z);
-            Eigen::Matrix4d joint_transform = base * make_transform(R, t);
+            Eigen::Matrix4d joint_transform = base * make_tform(R, t);
             double m = 0;
             Eigen::Matrix3d I = Eigen::Matrix3d::Zero();
 
@@ -193,7 +193,7 @@ namespace robot_math
                 if (dof > 0 && m > 0)
                 {
                     Eigen::Map<Eigen::Matrix3d> inert(&inertia[(dof - 1) * 9]);
-                    Eigen::Matrix4d T = joint_transform * make_transform(R, t);
+                    Eigen::Matrix4d T = joint_transform * make_tform(R, t);
                     R = T.block<3, 3>(0, 0);
                     t = T.block<3, 1>(0, 3);
                     inert += R * I * R.transpose() + m * (t.squaredNorm() * Eigen::Matrix3d::Identity() - t * t.transpose());
@@ -316,7 +316,7 @@ namespace robot_math
         return V;
     }
 
-    std::vector<double> T2pose(const Eigen::Matrix4d &T)
+    std::vector<double> tform_to_pose(const Eigen::Matrix4d &T)
     {
         Eigen::Vector3d w;
         Eigen::Matrix3d R = T.block(0, 0, 3, 3);
@@ -324,7 +324,7 @@ namespace robot_math
         return {T(0, 3), T(1, 3), T(2, 3), w[0], w[1], w[2]};
     }
 
-    Eigen::Vector3d cond_Matrix(const Eigen::MatrixXd &A)
+    Eigen::Vector3d cond_matrix(const Eigen::MatrixXd &A)
     {
         Eigen::JacobiSVD<Eigen::MatrixXd> svd(A, Eigen::ComputeThinU | Eigen::ComputeThinV);
         auto singular_values = svd.singularValues();
@@ -332,7 +332,43 @@ namespace robot_math
         return Eigen::Vector3d(singular_values(0) / singular_values(n - 1), singular_values(0), singular_values(1));
     }
 
-    Eigen::MatrixXd pInv(const Eigen::MatrixXd &matrix, double tol)
+    Eigen::MatrixXd dx_to_dq(const Eigen::MatrixXd &J, const Eigen::MatrixXd &dx, double con_threshold, double lambda)
+    {
+        int m = J.cols();
+        int n = J.rows();
+        Eigen::MatrixXd JJ_t = J * J.transpose();
+        Eigen::JacobiSVD<Eigen::MatrixXd> svd(JJ_t, Eigen::ComputeThinU | Eigen::ComputeThinV);
+        auto singular_values = svd.singularValues();
+        double c = singular_values(0) / singular_values(m - 1);
+        Eigen::MatrixXd I = Eigen::MatrixXd::Identity(n, n);
+        if (c > con_threshold)
+        {
+            return (J.transpose() * J + lambda * lambda * I).ldlt().solve(J.transpose() * dx);
+        }
+        else
+            return J.transpose() * svd.solve(dx);
+    }
+    void derivative_tform_inv(const Eigen::Matrix4d &T, const Eigen::Matrix4d &dT, Eigen::Matrix4d &dinvT, Eigen::Matrix4d &invT)
+    {
+        Eigen::Matrix3d dR_t = dT.block<3, 3>(0, 0).transpose();
+        Eigen::Vector3d dt = dT.block<3, 1>(0, 3);
+        Eigen::Matrix3d R_t = T.block<3, 3>(0, 0).transpose();
+        Eigen::Vector3d t = T.block<3, 1>(0, 3);
+        dinvT << dR_t, -dR_t * t - R_t * dt, 0, 0, 0, 0;
+        invT << R_t, -R_t * t, 0, 0, 0, 1;
+    }
+
+    void derivative_adjoint_T(const Eigen::Matrix4d &T, const Eigen::Matrix4d &dT, Eigen::Matrix6d &dAdT, Eigen::Matrix6d &AdT)
+    {
+        Eigen::Matrix3d R = T.block<3, 3>(0, 0);
+        Eigen::Vector3d t = T.block<3, 1>(0, 3);
+        Eigen::Matrix3d dR = dT.block<3, 3>(0, 0);
+        Eigen::Vector3d dt = dT.block<3, 1>(0, 3);
+        dAdT << dR, Eigen::Matrix3d::Zero(), so_w(dt) * R + so_w(t) * dR, dR;
+        AdT << R, Eigen::Matrix3d::Zero(), so_w(t) * R, R;
+    }
+
+    Eigen::MatrixXd pinv(const Eigen::MatrixXd &matrix, double tol)
     {
         Eigen::JacobiSVD<Eigen::MatrixXd> svd(matrix, Eigen::ComputeThinU | Eigen::ComputeThinV);
         Eigen::VectorXd s = svd.singularValues();
@@ -353,7 +389,7 @@ namespace robot_math
 
     void getExternalForce(float force[6], float mass, const float offset[6], const float cog[3], const std::vector<double> &pose)
     {
-        Eigen::Matrix4d T = pose2T(pose);
+        Eigen::Matrix4d T = pose_to_tform(pose);
         Eigen::Matrix3d R = T.block(0, 0, 3, 3).transpose();
 
         Eigen::Vector3d g = R * Eigen::Vector3d(0, 0, -1) * mass;
@@ -401,7 +437,7 @@ namespace robot_math
         return Sa;
     }
 
-    Eigen::Matrix4d invertT(const Eigen::Matrix4d &T)
+    Eigen::Matrix4d inv_tform(const Eigen::Matrix4d &T)
     {
         Eigen::Matrix4d invT = Eigen::Matrix4d::Identity();
         Eigen::Matrix3d R = T.block(0, 0, 3, 3).transpose();
@@ -459,7 +495,7 @@ namespace robot_math
     {
         Eigen::MatrixXd tem = M.ldlt().solve(J.transpose());
         Eigen::MatrixXd tem2 = J * tem;
-        Eigen::Vector3d cond = cond_Matrix(tem2);
+        Eigen::Vector3d cond = cond_matrix(tem2);
 
         if (cond(0) > c)
         {
@@ -483,7 +519,7 @@ namespace robot_math
         Eigen::LDLT<Eigen::MatrixXd> ldlt(M);
         Eigen::MatrixXd tem = ldlt.solve(J.transpose());
         Eigen::MatrixXd tem2 = J * tem;
-        Eigen::Vector3d cond = cond_Matrix(tem2);
+        Eigen::Vector3d cond = cond_matrix(tem2);
         if (cond(0) > c)
         {
             // std::cout << "cond big " << cond(0) <<  "\n";
@@ -799,7 +835,7 @@ namespace robot_math
         {
             Eigen::Vector6d Ai(robot->A.at(i - 1, 0), robot->A.at(i - 1, 1), robot->A.at(i - 1, 2),
                                robot->A.at(i - 1, 3), robot->A.at(i - 1, 4), robot->A.at(i - 1, 5));
-            J.col(i - 1) = adjoint_T(invertT(T)) * Ai;
+            J.col(i - 1) = adjoint_T(inv_tform(T)) * Ai;
             T = Eigen::Map<const Eigen::Matrix4d>(robot->M.data() + 16 * (i - 1)) * exp_twist(Ai * q[i - 1]) * T;
         }
     }
@@ -821,19 +857,19 @@ namespace robot_math
         coder::array<double, 3> J;
         J.set_size(6, n, n);
         std::fill(J.data(), J.data() + 6 * n * n, 0.0);
-        for(int i = n - 1; i >= 0; i--)
+        for (int i = n - 1; i >= 0; i--)
         {
             Eigen::Matrix6d G = spatial_inertia_matrix(Eigen::Map<const Eigen::Matrix3d>(robot->inertia.data() + i * 9),
                                                        robot->mass[i],
                                                        Eigen::Vector3d(robot->com.at(i, 0), robot->com.at(i, 1), robot->com.at(i, 2)));
             Eigen::Matrix4d T = Eigen::Matrix4d::Identity();
-            for(int j = i; j >= 0; j--)
+            for (int j = i; j >= 0; j--)
             {
                 Eigen::Vector6d Aj(robot->A.at(j, 0), robot->A.at(j, 1), robot->A.at(j, 2),
-                               robot->A.at(j, 3), robot->A.at(j, 4), robot->A.at(j, 5));
+                                   robot->A.at(j, 3), robot->A.at(j, 4), robot->A.at(j, 5));
                 Eigen::Map<Eigen::Vector6d>(J.data() + i * 6 * n + j * 6) = adjoint_T(T) * Aj;
                 Eigen::Map<const Eigen::Matrix4d> Mj(robot->M.data() + j * 16);
-                T = T * exp_twist(-Aj * q[j]) * invertT(Mj);
+                T = T * exp_twist(-Aj * q[j]) * inv_tform(Mj);
             }
             Eigen::Map<Eigen::MatrixXd> Ji(J.data() + i * 6 * n, 6, n);
             Mq += Ji.transpose() * G * Ji;
@@ -867,7 +903,7 @@ namespace robot_math
 
             Eigen::Map<const Eigen::Matrix4d> Mi(robot->M.data() + i * 16);
 
-            T = exp_twist(-Ai * q[i]) * invertT(Mi);
+            T = exp_twist(-Ai * q[i]) * inv_tform(Mi);
             Eigen::Matrix6d Map = adjoint_T(T);
             nu.col(i) = Map * nu0 + Ai * dq[i];
             nu0 = nu.col(i);
@@ -880,7 +916,7 @@ namespace robot_math
         for (int i = n - 1; i >= 0; i--)
         {
             if (i == n - 1)
-                f = adjoint_T(invertT(ME * TCP)).transpose() * fext.col(i);
+                f = adjoint_T(inv_tform(ME * TCP)).transpose() * fext.col(i);
             else
                 f = fext.col(i);
             Eigen::Matrix6d G = spatial_inertia_matrix(Eigen::Map<const Eigen::Matrix3d>(robot->inertia.data() + i * 9),
@@ -892,8 +928,8 @@ namespace robot_math
             Eigen::Map<const Eigen::Matrix4d> Mi(robot->M.data() + i * 16);
 
             F = adjoint_T(T).transpose() * F + G * dnu.col(i) - adjoint_V(nu.col(i)).transpose() * (G * nu.col(i)) - f;
-            tau(i) = F.dot(Ai);// + 1*dq[i];
-            T = exp_twist(-Ai * q[i]) * invertT(Mi);
+            tau(i) = F.dot(Ai); // + 1*dq[i];
+            T = exp_twist(-Ai * q[i]) * inv_tform(Mi);
         }
         return tau;
     }
@@ -909,7 +945,7 @@ namespace robot_math
         for (int i = n; i >= 1; i--)
         {
             if (i == n)
-                T = invertT(ME * TCP);
+                T = inv_tform(ME * TCP);
             else
                 T = Eigen::Matrix4d::Identity();
             for (int j = i; j >= 1; j--)
@@ -919,31 +955,133 @@ namespace robot_math
                 Eigen::Map<const Eigen::Matrix4d> Mj(robot->M.data() + (j - 1) * 16);
                 Eigen::Map<Eigen::Vector6d> Jji(J.data() + (i - 1) * 6 * n + (j - 1) * 6);
                 Jji = adjoint_T(T) * Aj;
-                T = T * exp_twist(-Aj * q[j - 1]) * invertT(Mj);
+                T = T * exp_twist(-Aj * q[j - 1]) * inv_tform(Mj);
             }
         }
     }
 
-    void m_c_g_matrix(const Robot *robot, const std::vector<double> &q, const std::vector<double> &dq, Eigen::MatrixXd &M,
-                      Eigen::MatrixXd &C, Eigen::VectorXd &G, Eigen::MatrixXd &J, Eigen::MatrixXd &dJ,
-                      Eigen::MatrixXd &dM, Eigen::Matrix4d &dT, Eigen::Matrix4d &T)
+    void m_c_g_matrix(const Robot *robot, const std::vector<double> &q, const std::vector<double> &dq,
+                      Eigen::MatrixXd &M, Eigen::MatrixXd &C, Eigen::VectorXd &g,
+                      Eigen::MatrixXd &Jb, Eigen::MatrixXd &dJb, Eigen::MatrixXd &dM,
+                      Eigen::Matrix4d &dTb, Eigen::Matrix4d &Tb)
     {
         int n = static_cast<int>(robot->dof);
-        M.resize(n, n);
-        dM.resize(n, n);
-        C.resize(n, n);
-        J.resize(6, n);
-        dJ.resize(6, n);
-        G.resize(n);
-        coder::array<double, 2> M_array, dM_array, C_array, J_array, dJ_array;
-        coder::array<double, 1> G_array;
-        M_array.set(M.data(), n, n);
-        dM_array.set(dM.data(), n, n);
-        C_array.set(C.data(), n, n);
-        J_array.set(J.data(), 6, n);
-        dJ_array.set(dJ.data(), 6, n);
-        G_array.set(G.data(), n);
-        ::m_c_g_matrix(robot, q, dq, M_array, C_array, G_array, J_array, dJ_array, dM_array, dT.data(), T.data());
+        Eigen::Map<const Eigen::Vector3d> gravity(robot->gravity);
+        Eigen::Map<const Eigen::Matrix4d> ME(robot->ME);
+        Eigen::Map<const Eigen::Matrix4d> TCP(robot->TCP);
+        coder::array<double, 3> J, dJ, pdM, G;
+        coder::array<double, 4> pdJ;
+        J.set_size(6, n, n);
+        std::fill(J.data(), J.data() + 6 * n * n, 0.0);
+        dJ.set_size(6, n, n);
+        std::fill(dJ.data(), dJ.data() + 6 * n * n, 0.0);
+        pdJ.set_size(6, n, n, n);
+        std::fill(pdJ.data(), pdJ.data() + 6 * n * n * n, 0.0);
+        pdM.set_size(n, n, n);
+        std::fill(pdM.data(), pdM.data() + n * n * n, 0.0);
+        G.set_size(6, 6, n);
+        std::fill(G.data(), G.data() + 6 * 6 * n, 0.0);
+
+        C = Eigen::MatrixXd::Zero(n, n);
+        g = Eigen::VectorXd::Zero(n);
+        M = Eigen::MatrixXd::Zero(n, n);
+        dM = Eigen::MatrixXd::Zero(n, n);
+        Eigen::MatrixXd P = Eigen::MatrixXd::Zero(n, n);
+
+        // for link i
+        coder::array<double, 3> pdT;
+        Eigen::Matrix6d AdT, dAdT;
+        Eigen::Matrix4d tform;
+        pdT.set_size(4, 4, n);
+        std::fill(pdT.data(), pdT.data() + 4 * 4 * n, 0.0);
+
+        for (int i = n - 1; i >= 0; i--)
+        {
+            Eigen::Map<Eigen::Matrix6d> Gi(G.data() + 6 * 6 * i);
+            Eigen::Map<Eigen::MatrixXd> Ji(J.data() + 6 * n * i, 6, n);
+            Eigen::Map<Eigen::MatrixXd> dJi(dJ.data() + 6 * n * i, 6, n);
+
+            Eigen::Map<const Eigen::Matrix3d> Ii(robot->inertia.data() + i * 9);
+            Eigen::Vector3d ri(robot->com.at(i, 0), robot->com.at(i, 1), robot->com.at(i, 2));
+            Gi = spatial_inertia_matrix(Ii, robot->mass[i], ri);
+            Eigen::Matrix4d T = Eigen::Matrix4d::Identity();
+            Eigen::Matrix4d dT = Eigen::Matrix4d::Zero();
+            std::fill(pdT.data(), pdT.data() + 4 * 4 * n, 0.0);
+
+            for (int j = i; j >= 0; j--)
+            {
+                Eigen::Vector6d Aj(robot->A.at(j, 0), robot->A.at(j, 1), robot->A.at(j, 2),
+                                   robot->A.at(j, 3), robot->A.at(j, 4), robot->A.at(j, 5));
+                Eigen::Matrix4d sej = se_twist(-Aj);
+                Eigen::Map<const Eigen::Matrix4d> Mj(robot->M.data() + j * 16);
+                Eigen::Map<Eigen::Matrix4d> pdTj(pdT.data() + j * 16);
+
+                derivative_adjoint_T(T, dT, dAdT, AdT);
+                Ji.col(j) = AdT * Aj;
+                dJi.col(j) = dAdT * Aj;
+                tform = exp_twist(-Aj * q[j]) * inv_tform(Mj);
+                // update pdT wrt. joint j ... i
+                for (int k = j + 1; k <= i; k++)
+                {
+                    Eigen::Map<Eigen::Matrix4d> pdTk(pdT.data() + k * 16);
+                    derivative_adjoint_T(T, pdTk, dAdT, AdT);
+                    Eigen::Map<Eigen::Vector6d>(pdJ.data() + k * 6 * n * n + i * 6 * n + 6 * j) = dAdT * Aj;
+                    pdTk *= tform;
+                }
+                pdTj = T * sej * tform;
+                ///////////////////////////////////////
+                dT = (dT + T * sej * dq[j]) * tform;
+                T = T * tform;
+            }
+            M += Ji.transpose() * Gi * Ji;
+            dM += dJi.transpose() * Gi * Ji + Ji.transpose() * Gi * dJi;
+            for (int k = 0; k <= i; k++)
+            {
+                Eigen::Map<const Eigen::Matrix4d> pdTk(pdT.data() + k * 16);
+                Eigen::Vector3d drc = -pdTk.block<3, 3>(0, 0).transpose() * (T.block<3, 1>(0, 3) - ri) - T.block<3, 3>(0, 0).transpose() * pdTk.block<3, 1>(0, 3);
+                P(i, k) = -robot->mass[i] * gravity.dot(drc);
+            }
+            if (i == n - 1)
+            {
+                Eigen::Matrix4d Offset = ME * TCP;
+                Tb = inv_tform(T) * Offset;
+                dTb = -inv_tform(T) * dT * inv_tform(T) * Offset;
+                Eigen::Matrix6d adTb = adjoint_T(inv_tform(Offset));
+                Jb = adTb * Ji;
+                dJb = adTb * dJi;
+            }
+        }
+        for (int i = 0; i < n; i++)
+            for (int j = 0; j < n; j++)
+            {
+                Eigen::Map<Eigen::MatrixXd> pdMi(pdM.data() + i * n * n, n, n);
+                Eigen::Map<const Eigen::MatrixXd> pdJji(pdJ.data() + i * 6 * n * n + j * 6 * n, 6, n);
+                Eigen::Map<const Eigen::MatrixXd> Jj(J.data() + 6 * n * j, 6, n);
+
+                Eigen::Map<const Eigen::Matrix6d> Gj(G.data() + 6 * 6 * j);
+                pdMi += pdJji.transpose() * Gj * Jj + Jj.transpose() * Gj * pdJji;
+                g(i) += P(j, i);
+            }
+        for (int k = 0; k < n; k++)
+            for (int j = 0; j < n; j++)
+                for (int i = 0; i < n; i++)
+                    C(k, j) += 0.5 * (pdM.at(k, j, i) + pdM.at(k, i, j) - pdM.at(i, j, k)) * dq[i];
+        // int n = static_cast<int>(robot->dof);
+        // M.resize(n, n);
+        // dM.resize(n, n);
+        // C.resize(n, n);
+        // J.resize(6, n);
+        // dJ.resize(6, n);
+        // G.resize(n);
+        // coder::array<double, 2> M_array, dM_array, C_array, J_array, dJ_array;
+        // coder::array<double, 1> G_array;
+        // M_array.set(M.data(), n, n);
+        // dM_array.set(dM.data(), n, n);
+        // C_array.set(C.data(), n, n);
+        // J_array.set(J.data(), 6, n);
+        // dJ_array.set(dJ.data(), 6, n);
+        // G_array.set(G.data(), n);
+        // ::m_c_g_matrix(robot, q, dq, M_array, C_array, G_array, J_array, dJ_array, dM_array, dT.data(), T.data());
     }
 
     void derivative_jacobian_matrix(const Robot *robot, const std::vector<double> &q, const std::vector<double> &dq, Eigen::MatrixXd &dJ, Eigen::MatrixXd &J, Eigen::Matrix4d &dT, Eigen::Matrix4d &T)
@@ -1034,7 +1172,7 @@ namespace robot_math
         Fg.bottomRows(3) = mass * 9.8 * T.block(0, 0, 3, 3).transpose() * Eigen::Vector3d(0, 0, -1);
         Eigen::Vector6d rawWrench(rawForce[3] - offset[3], rawForce[4] - offset[4], rawForce[5] - offset[5],
                                   rawForce[0] - offset[0], rawForce[1] - offset[1], rawForce[2] - offset[2]);
-        Eigen::Vector6d Fsensor = adjoint_T(invertT(Tsensor)).transpose() * rawWrench * scale;
+        Eigen::Vector6d Fsensor = adjoint_T(inv_tform(Tsensor)).transpose() * rawWrench * scale;
         Eigen::Vector6d Fext = adTcb.transpose() * (Fg - Ftotal) - Fsensor;
         return adjoint_T(Tcp).transpose() * Fext;
     }
@@ -1049,7 +1187,7 @@ namespace robot_math
         Jb_array.set(Jb.data(), 6, n);
         ::jacobian_matrix(robot, q, Jb_array, T.data());
         T = T * Tcp;
-        Jb = adjoint_T(invertT(Tcp)) * Jb;
+        Jb = adjoint_T(inv_tform(Tcp)) * Jb;
         Eigen::Matrix3d R = T.block(0, 0, 3, 3);
         Eigen::Vector3d p = T.block(0, 3, 3, 1);
         Eigen::Matrix3d Rd = Td.block(0, 0, 3, 3);
@@ -1101,7 +1239,7 @@ namespace robot_math
             Eigen::Matrix4d Td2 = Td * dTd;
             T2.block(0, 0, 3, 3) = Td2.block(0, 0, 3, 3) * exp_r(-re);
             T2.block(0, 3, 3, 1) = Td2.block(0, 3, 3, 1) - T2.block(0, 0, 3, 3) * pe;
-            T2 = T2 * invertT(Tcp);
+            T2 = T2 * inv_tform(Tcp);
         }
     }
 
