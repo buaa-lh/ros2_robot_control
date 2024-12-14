@@ -42,8 +42,8 @@ def generate_launch_description():
     # arm_id = LaunchConfiguration(arm_id_parameter_name)
 
     rviz_file = os.path.join(
-        get_package_share_directory("franka_description"),
-        "rviz",
+        get_package_share_directory("control_node"),
+        "config",
         "visualize_franka.rviz",
     )
 
