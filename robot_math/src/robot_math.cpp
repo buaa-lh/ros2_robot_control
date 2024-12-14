@@ -1070,14 +1070,29 @@ namespace robot_math
 
     void derivative_jacobian_matrix(const Robot *robot, const std::vector<double> &q, const std::vector<double> &dq, Eigen::MatrixXd &dJ, Eigen::MatrixXd &J, Eigen::Matrix4d &dT, Eigen::Matrix4d &T)
     {
-        int n = q.size();
-        J.resize(6, n);
-        dJ.resize(6, n);
-        coder::array<double, 2> J_array;
-        coder::array<double, 2> dJ_array;
-        J_array.set(J.data(), 6, J.cols());
-        dJ_array.set(dJ.data(), 6, dJ.cols());
-        ::derivative_jacobian_matrix(robot, q, dq, dJ_array, J_array, dT.data(), T.data());
+        int n = static_cast<int>(robot->dof);
+        Eigen::Map<const Eigen::Matrix4d> ME(robot->ME);
+        Eigen::Map<const Eigen::Matrix4d> TCP(robot->TCP);
+        T = ME * TCP;
+        dT.setZero();
+        J.setZero(6, n);
+        dJ.setZero(6, n);
+        Eigen::Matrix6d dAdT, AdT;
+        Eigen::Matrix4d invT, dInvT, tform;
+        for(int i = n - 1; i >= 0; i--)
+        {
+            Eigen::Vector6d Ai(robot->A.at(i, 0), robot->A.at(i, 1), robot->A.at(i, 2),
+                                   robot->A.at(i, 3), robot->A.at(i, 4), robot->A.at(i, 5));
+
+            Eigen::Map<const Eigen::Matrix4d> Mi(robot->M.data() + i * 16);
+            derivative_tform_inv(T, dT, dInvT, invT);
+            derivative_adjoint_T(invT, dInvT, dAdT, AdT);
+            J.col(i) = AdT * Ai;
+            dJ.col(i) = dAdT * Ai;
+            tform = Mi * exp_twist(Ai * q[i]);
+            dT = tform * (se_twist(Ai) * T * dq[i] + dT);
+            T = tform * T;
+        }
     }
 
     void gravity_and_inertia_compensation(const Robot &robot, const std::vector<double> &q, const std::vector<double> &qd, const std::vector<double> &qdd, double _T[16], double _Tcb[16], double _Tcs[16], float force[6], float mass, const float offset[6], const float cog[3], const std::vector<double> &pose, const double _G[36]) // force:fxyzTxyz _Tcs:sensor frame based on gravity center frame
