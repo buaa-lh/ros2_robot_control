@@ -89,22 +89,20 @@ namespace robot_math
 						  const Eigen::Vector3d &a_d, const Eigen::Vector3d &alpha_d,
 						  Eigen::Vector6d &xe, Eigen::Vector6d &dxe, Eigen::Vector6d &ddx_d);
 
-	void bodyTwist2SpatialTwist(const double T[16], const double Vb[6], const double dVb[16], double Vs[6], double dVs[6]);
-	void spatialTwist2BodyTwist(const double T[16], const double Vs[6], double const dVs[16], double Vb[6], double dVb[6]);
-	void swapOrder(double *buf, int n);
+	void body_twist_to_spatial(const double T[16], const double Vb[6], const double dVb[16], double Vs[6], double dVs[6]);
+	void spatial_twist_to_body(const double T[16], const double Vs[6], double const dVs[16], double Vb[6], double dVb[6]);
+	void swap_order(double *buf, int n);
 
-	void getExternalForce(float force[6], float mass, const float offset[6], const float cog[3], const std::vector<double> &pose);
+	void get_ext_force(float force[6], float mass, const float offset[6], const float cog[3], const std::vector<double> &pose);
 
 	Eigen::Vector6d twist_estimate(const Eigen::Matrix4d &Td, const Eigen::Matrix4d &Td_pre, double dt);
 
 	Eigen::Matrix6d spatial_inertia_matrix(const Eigen::Matrix3d &I, double m, const Eigen::Vector3d &com);
 	// load robot structure in Json file
-	Robot loadRobot(const char *filename);
+	Robot load_robot(const char *filename);
     
     Eigen::VectorXd get_ext_torque(const Robot *robot, const std::vector<double> &q, const Eigen::MatrixXd& fext);
-	// jacobian of ME in the robot, not TCP
-	
-	// TCP
+
     Eigen::MatrixXd mass_matrix(const Robot *robot, const std::vector<double> &q);
 	
 	Eigen::VectorXd inverse_dynamics(const Robot *robot, const std::vector<double> &q,
@@ -116,7 +114,7 @@ namespace robot_math
 					  Eigen::MatrixXd &C, Eigen::VectorXd &g, Eigen::MatrixXd &Jb, Eigen::MatrixXd &dJb,
 					  Eigen::MatrixXd &dM, Eigen::Matrix4d &dTb, Eigen::Matrix4d &Tb);
 
-	// jacobian derivative of ME in the robot, not TCP
+
 	void derivative_jacobian_matrix(const Robot *robot, const std::vector<double> &q, const std::vector<double> &dq,
 									Eigen::MatrixXd &dJ, Eigen::MatrixXd &J, Eigen::Matrix4d &dT, Eigen::Matrix4d &T);
 
@@ -129,11 +127,11 @@ namespace robot_math
 	void admittance_error_cal(const Robot *robot, const Eigen::Matrix4d &Tcp, const Eigen::Matrix4d &Td, const Eigen::Vector6d &Vd,
 							  const std::vector<double> &q, const std::vector<double> &qd, Eigen::Vector3d &re, Eigen::Vector3d &pe, Eigen::Vector3d &red, Eigen::Vector3d &ped, bool flag);
 
-	void getTaskSpaceMotion(const Robot &robot, const std::vector<double> &q, const std::vector<double> &qd, const std::vector<double> &qdd, double T[16], double V[6], double dV[6]);
+	void get_task_space_motion(const Robot &robot, const std::vector<double> &q, const std::vector<double> &qd, const std::vector<double> &qdd, double T[16], double V[6], double dV[6]);
 	
-	void gravityAndInertComp(const Robot &robot, const std::vector<double> &q, const std::vector<double> &qd, const std::vector<double> &qdd, double _T[16], double _Tcb[16], double _Tcs[16], float force[6], float mass, const float offset[6], const float cog[3], const std::vector<double> &pose, const double _G[36]);
+	void gravity_and_inertia_compensation(const Robot &robot, const std::vector<double> &q, const std::vector<double> &qd, const std::vector<double> &qdd, double _T[16], double _Tcb[16], double _Tcs[16], float force[6], float mass, const float offset[6], const float cog[3], const std::vector<double> &pose, const double _G[36]);
 	
-	Eigen::Vector6d gravityAndInertiaCompensation(const Robot &robot, const Eigen::Matrix4d &Tcp, const Eigen::Matrix4d &Tsensor, const std::vector<double> &q, const std::vector<double> &qd,
+	Eigen::Vector6d gravity_and_inertia_compensation(const Robot &robot, const Eigen::Matrix4d &Tcp, const Eigen::Matrix4d &Tsensor, const std::vector<double> &q, const std::vector<double> &qd,
 												  const std::vector<double> &qdd, const float *rawForce, float mass, const float offset[6], const float cog[3], const Eigen::Matrix3d &mI, double scale = 1.0);
 
 	template <class T, int m, int n>

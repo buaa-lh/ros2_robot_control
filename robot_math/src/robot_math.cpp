@@ -387,7 +387,7 @@ namespace robot_math
         return svd.matrixV() * singularValuesInv.asDiagonal() * svd.matrixU().transpose();
     }
 
-    void getExternalForce(float force[6], float mass, const float offset[6], const float cog[3], const std::vector<double> &pose)
+    void get_ext_force(float force[6], float mass, const float offset[6], const float cog[3], const std::vector<double> &pose)
     {
         Eigen::Matrix4d T = pose_to_tform(pose);
         Eigen::Matrix3d R = T.block(0, 0, 3, 3).transpose();
@@ -661,7 +661,7 @@ namespace robot_math
         ddx_d.tail<3>() = a_d;
     }
 
-    void swapOrder(double *buf, int n)
+    void swap_order(double *buf, int n)
     {
         int offset = n / 2;
         for (int i = 0; i < offset; i++)
@@ -672,7 +672,7 @@ namespace robot_math
         }
     }
 
-    void bodyTwist2SpatialTwist(const double _T[16], const double _Vb[6], const double _dVb[6], double _Vs[6], double _dVs[6])
+    void body_twist_to_spatial(const double _T[16], const double _Vb[6], const double _dVb[6], double _Vs[6], double _dVs[6])
     {
         Eigen::Map<const Eigen::Matrix4d> T(_T);
         Eigen::Map<const Eigen::Vector6d> Vb(_Vb);
@@ -694,7 +694,7 @@ namespace robot_math
         }
     }
 
-    void spatialTwist2BodyTwist(const double _T[16], const double _Vs[6], const double _dVs[16], double _Vb[6], double _dVb[6])
+    void spatial_twist_to_body(const double _T[16], const double _Vs[6], const double _dVs[16], double _Vb[6], double _dVb[6])
     {
         Eigen::Map<const Eigen::Matrix4d> T(_T);
         Eigen::Map<Eigen::Vector6d> Vb(_Vb);
@@ -749,7 +749,7 @@ namespace robot_math
         }
     } jsex;
 
-    Robot loadRobot(const char *filename)
+    Robot load_robot(const char *filename)
     {
         Json::Value root;
         std::ifstream ifs;
@@ -1066,22 +1066,6 @@ namespace robot_math
             for (int j = 0; j < n; j++)
                 for (int i = 0; i < n; i++)
                     C(k, j) += 0.5 * (pdM.at(k, j, i) + pdM.at(k, i, j) - pdM.at(i, j, k)) * dq[i];
-        // int n = static_cast<int>(robot->dof);
-        // M.resize(n, n);
-        // dM.resize(n, n);
-        // C.resize(n, n);
-        // J.resize(6, n);
-        // dJ.resize(6, n);
-        // G.resize(n);
-        // coder::array<double, 2> M_array, dM_array, C_array, J_array, dJ_array;
-        // coder::array<double, 1> G_array;
-        // M_array.set(M.data(), n, n);
-        // dM_array.set(dM.data(), n, n);
-        // C_array.set(C.data(), n, n);
-        // J_array.set(J.data(), 6, n);
-        // dJ_array.set(dJ.data(), 6, n);
-        // G_array.set(G.data(), n);
-        // ::m_c_g_matrix(robot, q, dq, M_array, C_array, G_array, J_array, dJ_array, dM_array, dT.data(), T.data());
     }
 
     void derivative_jacobian_matrix(const Robot *robot, const std::vector<double> &q, const std::vector<double> &dq, Eigen::MatrixXd &dJ, Eigen::MatrixXd &J, Eigen::Matrix4d &dT, Eigen::Matrix4d &T)
@@ -1096,11 +1080,11 @@ namespace robot_math
         ::derivative_jacobian_matrix(robot, q, dq, dJ_array, J_array, dT.data(), T.data());
     }
 
-    void gravityAndInertComp(const Robot &robot, const std::vector<double> &q, const std::vector<double> &qd, const std::vector<double> &qdd, double _T[16], double _Tcb[16], double _Tcs[16], float force[6], float mass, const float offset[6], const float cog[3], const std::vector<double> &pose, const double _G[36]) // force:fxyzTxyz _Tcs:sensor frame based on gravity center frame
+    void gravity_and_inertia_compensation(const Robot &robot, const std::vector<double> &q, const std::vector<double> &qd, const std::vector<double> &qdd, double _T[16], double _Tcb[16], double _Tcs[16], float force[6], float mass, const float offset[6], const float cog[3], const std::vector<double> &pose, const double _G[36]) // force:fxyzTxyz _Tcs:sensor frame based on gravity center frame
     {
-        getExternalForce(force, mass, offset, cog, pose);
+        get_ext_force(force, mass, offset, cog, pose);
         double _Vb[6]{0}, _dVb[6]{0};
-        getTaskSpaceMotion(robot, q, qd, qdd, _T, _Vb, _dVb);
+        get_task_space_motion(robot, q, qd, qdd, _T, _Vb, _dVb);
         Eigen::Vector6d Vc = Eigen::Vector6d::Zero();
         Eigen::Vector6d dVc = Eigen::Vector6d::Zero();
         Eigen::Map<const Eigen::Vector6d> Vb(_Vb);
@@ -1128,7 +1112,7 @@ namespace robot_math
         force[5] -= static_cast<float>(Fsensor(2));
     }
 
-    void getTaskSpaceMotion(const Robot &robot, const std::vector<double> &q, const std::vector<double> &qd, const std::vector<double> &qdd, double T[16], double V[6], double dV[6])
+    void get_task_space_motion(const Robot &robot, const std::vector<double> &q, const std::vector<double> &qd, const std::vector<double> &qdd, double T[16], double V[6], double dV[6])
     {
         int n = q.size();
         double dT[16] = {0};
@@ -1151,7 +1135,7 @@ namespace robot_math
         }
     }
 
-    Eigen::Vector6d gravityAndInertiaCompensation(const Robot &robot, const Eigen::Matrix4d &Tcp, const Eigen::Matrix4d &Tsensor, const std::vector<double> &q, const std::vector<double> &qd,
+    Eigen::Vector6d gravity_and_inertia_compensation(const Robot &robot, const Eigen::Matrix4d &Tcp, const Eigen::Matrix4d &Tsensor, const std::vector<double> &q, const std::vector<double> &qd,
                                                   const std::vector<double> &qdd, const float *rawForce, float mass, const float offset[6], const float cog[3], const Eigen::Matrix3d &mI, double scale)
     {
         Eigen::Vector3d com(cog[0], cog[1], cog[2]);
@@ -1164,7 +1148,7 @@ namespace robot_math
         g.topLeftCorner(3, 3) = mI;
         Eigen::Vector6d Vc, dVc, Vb, dVb;
         Eigen::Matrix4d T;
-        getTaskSpaceMotion(robot, q, qd, qdd, T.data(), Vb.data(), dVb.data());
+        get_task_space_motion(robot, q, qd, qdd, T.data(), Vb.data(), dVb.data());
         Vc = adTcb * Vb;
         dVc = adTcb * dVb;
         Eigen::Vector6d Ftotal = g * dVc - adjoint_V(Vc).transpose() * g * Vc;
