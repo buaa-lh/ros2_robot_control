@@ -7,25 +7,23 @@ namespace control_node
     ControlManager::ControlManager(std::shared_ptr<rclcpp::Executor> executor,
                                    const std::string &node_name, const std::string &name_space, const rclcpp::NodeOptions &option)
         : rclcpp::Node(node_name, name_space, option),
-          is_new_cmd_available_(false),
           executor_(executor),
-          dof_(0),
-          is_simulation_(true),
-          param_listener_(std::make_shared<ParamListener>(this->get_node_parameters_interface()))
+          param_listener_(std::make_shared<ParamListener>(this->get_node_parameters_interface())),
+          is_new_cmd_available_(false),
+          dof_(0)
     {
-
         params_ = param_listener_->get_params();
         update_rate_ = params_.update_rate;
+        RCLCPP_INFO(this->get_logger(), "%d", update_rate_);
         joint_command_topic_name_ = this->get_parameter_or<std::string>("cmd_name", "gui/joint_state");
         is_simulation_ = this->get_parameter_or<bool>("simulation", true);
-        command_receiver_ = this->create_subscription<sensor_msgs::msg::JointState>(joint_command_topic_name_, rclcpp::SensorDataQoS(), std::bind(&ControlManager::robot_joint_command_callback, this, std::placeholders::_1));
-
+        is_sim_real_time_ = this->get_parameter_or<bool>("sim_real_time", true);
+        command_receiver_ = this->create_subscription<sensor_msgs::msg::JointState>(joint_command_topic_name_, rclcpp::SensorDataQoS(),
+                                                                                    std::bind(&ControlManager::robot_joint_command_callback, this, std::placeholders::_1));
         joint_state_publisher_ = this->create_publisher<sensor_msgs::msg::JointState>("joint_states", rclcpp::SensorDataQoS());
-
-        description_sub_ = this->create_subscription<std_msgs::msg::String>("robot_description", rclcpp::QoS(1).transient_local(), std::bind(&ControlManager::robot_description_callback, this, std::placeholders::_1));
-
+        description_sub_ = this->create_subscription<std_msgs::msg::String>("robot_description", rclcpp::QoS(1).transient_local(),
+                                                                            std::bind(&ControlManager::robot_description_callback, this, std::placeholders::_1));
         real_time_publisher_ = std::make_shared<realtime_tools::RealtimePublisher<sensor_msgs::msg::JointState>>(joint_state_publisher_);
-
         robot_description_ = this->get_parameter_or<std::string>("robot_description", "");
         config_robot();
     }
@@ -153,17 +151,17 @@ namespace control_node
         std::copy(dq.begin(), dq.end(), dx.begin());
         Eigen::MatrixXd M = mass_matrix(&robot_, q);
         Eigen::VectorXd damping = Eigen::VectorXd::Zero(n);
-        for(int i = 0; i < dof_; i++)
+        for (int i = 0; i < dof_; i++)
             damping(i) = dq[i] * robot_model_.joints_[joint_names_[i]]->dynamics->damping;
         Eigen::Map<Eigen::VectorXd>(&dx[n], n) = M.ldlt().solve(tau - gvtao - damping);
         std::copy(cmd.begin() + n, cmd.end(), dx.begin() + 2 * n);
     }
     void ControlManager::simulation_observer(const std::vector<double> &x, double t)
     {
-        std::cerr << t << " : ";
-        for (int i = 0; i < dof_; i++)
-            std::cerr << x[i] << " ";
-        std::cerr << "\n";
+        // std::cerr << t << " : ";
+        // for (int i = 0; i < dof_; i++)
+        //     std::cerr << x[i] << " ";
+        // std::cerr << "\n";
         std::copy(x.begin(), x.begin() + dof_, joint_position_.begin());
         std::copy(x.begin() + dof_, x.begin() + 2 * dof_, joint_velocity_.begin());
         auto states = std::make_shared<sensor_msgs::msg::JointState>();
@@ -179,8 +177,11 @@ namespace control_node
             real_time_publisher_->unlockAndPublish();
         }
         // wait for real time elapse
-        auto until = sim_start_time_ + std::chrono::duration<double>(t);
-        std::this_thread::sleep_until(until);
+        if (is_sim_real_time_)
+        {
+            auto until = sim_start_time_ + std::chrono::duration<double>(t);
+            std::this_thread::sleep_until(until);
+        }
     }
 
     bool ControlManager::is_simulation()
@@ -200,18 +201,12 @@ namespace control_node
                                   std::placeholders::_1,
                                   std::placeholders::_2);
 
-        typedef runge_kutta4<state_type> rk4;
-
         // Error stepper, used to create the controlled stepper
-        typedef runge_kutta_cash_karp54<state_type> rkck54;
-
-        // Controlled stepper:
-        // it's built on an error stepper and allows us to have the output at each
-        // internally defined (refined) timestep, via integrate_adaptive call
-        typedef controlled_runge_kutta<rkck54> ctrl_rkck54;
-        std::vector<double> x0{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+        typedef runge_kutta_cash_karp54<state_type> error_stepper_type;
+        typedef controlled_runge_kutta<error_stepper_type> controlled_stepper_type;
+        state_type x0{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
         sim_start_time_ = std::chrono::steady_clock::now();
-        integrate_const(ctrl_rkck54(), dynamics, x0, 0.0, 10.0, 0.01, observer);
+        integrate_adaptive(make_controlled(1.0e-10, 1.0e-6, error_stepper_type()), dynamics, x0, 0.0, 10.0, 0.01, observer);
         // size_t steps = integrate_adaptive(runge_kutta4<std::vector<double>>(), dynamics, x0, 0.0, time, 0.01, observer);
     }
 
@@ -224,9 +219,9 @@ namespace control_node
         std::copy(x.begin() + n, x.begin() + 2 * n, dq.begin());
 
         std::vector<double> cmd(n);
-        for(int i = 0; i < n; i++)
+        for (int i = 0; i < n; i++)
             cmd[i] = -dq[i];
-        //std::fill(cmd.begin(), cmd.end(), 0.0);
+        // std::fill(cmd.begin(), cmd.end(), 0.0);
         return cmd;
     }
 

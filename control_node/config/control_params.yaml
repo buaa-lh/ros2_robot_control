@@ -3,3 +3,4 @@ control_node:
     update_rate: 500
     cmd_name: gui/joint_states
     simulation: true
+    sim_real_time: true

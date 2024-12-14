@@ -55,7 +55,7 @@ private:
     Ui::MainWindow *ui;
     Widget *widgets[4];
     QLabel * message;
-    unsigned int sampleCount = 5000;
+    unsigned int sampleCount = 50000;
     QList<QPointF> m_buffer[4][7];
     double time_width = 10;
     QTimer timer;
