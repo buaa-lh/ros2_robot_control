@@ -8,7 +8,7 @@
 #include "std_msgs/msg/string.hpp"
 #include "robot_math/robot_math.hpp"
 #include <functional>
-
+#include <chrono>
 namespace control_node
 {
 
@@ -58,6 +58,7 @@ namespace control_node
             volatile bool is_new_cmd_available_;
             int dof_;
             bool is_simulation_;
+            std::chrono::time_point<std::chrono::steady_clock>  sim_start_time_;
     };
 
 

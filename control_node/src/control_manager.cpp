@@ -178,6 +178,9 @@ namespace control_node
             real_time_publisher_->msg_ = *states;
             real_time_publisher_->unlockAndPublish();
         }
+        // wait for real time elapse
+        auto until = sim_start_time_ + std::chrono::duration<double>(t);
+        std::this_thread::sleep_until(until);
     }
 
     bool ControlManager::is_simulation()
@@ -207,6 +210,7 @@ namespace control_node
         // internally defined (refined) timestep, via integrate_adaptive call
         typedef controlled_runge_kutta<rkck54> ctrl_rkck54;
         std::vector<double> x0{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+        sim_start_time_ = std::chrono::steady_clock::now();
         integrate_const(ctrl_rkck54(), dynamics, x0, 0.0, 10.0, 0.01, observer);
         // size_t steps = integrate_adaptive(runge_kutta4<std::vector<double>>(), dynamics, x0, 0.0, time, 0.01, observer);
     }
