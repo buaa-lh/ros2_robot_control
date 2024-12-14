@@ -1,5 +1,5 @@
 #include "mainwindow.h"
-#include "./ui_mainwindow.h"
+#include "ui_mainwindow.h"
 #include <QtCharts/QXYSeries>
 #include <QLineSeries>
 #include <QtCharts/QValueAxis>
@@ -13,7 +13,6 @@
 
 Subscriber::Subscriber(MainWindow *wnd) : Node("robot_monitor_subscriber"), mainWnd(wnd), start_time(std::chrono::nanoseconds(this->now().nanoseconds()))
 {
-
     auto topic_callback =
         [this](sensor_msgs::msg::JointState::SharedPtr msg) -> void
     {
