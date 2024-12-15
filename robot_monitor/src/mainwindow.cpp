@@ -67,10 +67,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     tt = std::make_shared<std::thread>([this]()
                                        { 
-
                                         auto executor = std::make_shared<rclcpp::executors::StaticSingleThreadedExecutor>();
                                         executor->add_node(node);
-                                        executor->spin(); });
+                                        executor->spin(); 
+                                        this->close();
+                                        });
     tt->detach();
     timer.start(50);
 }
