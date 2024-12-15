@@ -164,6 +164,8 @@ namespace control_node
         // std::cerr << "\n";
         std::copy(x.begin(), x.begin() + dof_, joint_position_.begin());
         std::copy(x.begin() + dof_, x.begin() + 2 * dof_, joint_velocity_.begin());
+        joint_torque_ = joint_torque_command_;
+        
         auto states = std::make_shared<sensor_msgs::msg::JointState>();
         states->name = joint_names_;
         states->position = joint_position_;
@@ -206,7 +208,7 @@ namespace control_node
         typedef controlled_runge_kutta<error_stepper_type> controlled_stepper_type;
         state_type x0{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
         sim_start_time_ = std::chrono::steady_clock::now();
-        integrate_adaptive(make_controlled(1.0e-10, 1.0e-6, error_stepper_type()), dynamics, x0, 0.0, 10.0, 0.01, observer);
+        integrate_adaptive(make_controlled(1.0e-9, 1.0e-5, error_stepper_type()), dynamics, x0, 0.0, 10.0, 0.01, observer);
         // size_t steps = integrate_adaptive(runge_kutta4<std::vector<double>>(), dynamics, x0, 0.0, time, 0.01, observer);
     }
 
@@ -217,12 +219,14 @@ namespace control_node
         std::fill(ddq.begin(), ddq.end(), 0.0);
         std::copy(x.begin(), x.begin() + n, q.begin());
         std::copy(x.begin() + n, x.begin() + 2 * n, dq.begin());
-
-        std::vector<double> cmd(n);
+        // Eigen::MatrixXd M, C, Jb, dJb, dM;
+        // Eigen::VectorXd g;
+        // Eigen::Matrix4d Tb, dTb;
+        // m_c_g_matrix(&robot_, q, dq, M, C, g, Jb, dJb, dM, dTb,Tb);
         for (int i = 0; i < n; i++)
-            cmd[i] = -dq[i];
+            joint_torque_command_[i] = -dq[i];
         // std::fill(cmd.begin(), cmd.end(), 0.0);
-        return cmd;
+        return joint_torque_command_;
     }
 
 }
