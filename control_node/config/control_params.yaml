@@ -2,5 +2,5 @@ control_node:
   ros__parameters:
     update_rate: 500
     cmd_name: gui/joint_states
-    simulation: true
+    simulation: false
     sim_real_time: true

@@ -46,7 +46,7 @@ MainWindow::MainWindow(QWidget *parent)
     isScaling = true;
     isLogging = false;
     frames.reserve(sampleCount * 5);
-    setMinimumSize(800, 600);
+    // setMinimumSize(800, 600);
     connect(ui->actionClear, &QAction::triggered, this, &MainWindow::clear);
     connect(ui->actionJoint_1, &QAction::triggered, this, &MainWindow::setJointDisplay);
     connect(ui->actionJoint_2, &QAction::triggered, this, &MainWindow::setJointDisplay);
