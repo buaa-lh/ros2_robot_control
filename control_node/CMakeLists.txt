@@ -22,6 +22,8 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   "urdf"
   "std_msgs"
   "robot_math"
+  "hardware_interface"
+  "controller_interface"
 )
 
 foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
