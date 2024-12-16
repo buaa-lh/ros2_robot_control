@@ -8,6 +8,7 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(pluginlib REQUIRED)
+find_package(hardware_interface REQUIRED)
 
 add_executable(test_controller src/test_controller.cpp)
 target_include_directories(test_controller PUBLIC
@@ -18,6 +19,7 @@ target_compile_features(test_controller PUBLIC c_std_99 cxx_std_17)  # Require C
 ament_target_dependencies(
   test_controller
   "pluginlib"
+  "hardware_interface"
 )
 
 install(TARGETS test_controller

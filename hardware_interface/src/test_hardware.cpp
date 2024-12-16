@@ -11,8 +11,8 @@ int main(int argc, char** argv)
 
   try
   {
-    std::shared_ptr<hardware_interface::HardwareInterface> my_hard = loader.createSharedInstance("hardwares::MyHardware");
-    my_hard->initialize();
+    std::shared_ptr<hardware_interface::HardwareInterface> my_hard = loader.createSharedInstance("hardwares::SimulationHardware");
+    my_hard->initialize("");
   }
   catch(pluginlib::PluginlibException& ex)
   {

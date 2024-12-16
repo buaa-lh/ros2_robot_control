@@ -24,6 +24,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   "robot_math"
   "hardware_interface"
   "controller_interface"
+  "pluginlib"
 )
 
 foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})

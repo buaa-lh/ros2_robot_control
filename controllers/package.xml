@@ -10,6 +10,9 @@
   <buildtool_depend>ament_cmake_ros</buildtool_depend>
 
   <depend>controller_interface</depend>
+  <depend>hardware_interface</depend>
+  <depend>robot_math</depend>
+  <depend>urdf</depend>
   <depend>pluginlib</depend>
 
   <test_depend>ament_lint_auto</test_depend>

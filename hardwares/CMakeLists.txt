@@ -9,6 +9,8 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_ros REQUIRED)
 find_package(hardware_interface REQUIRED)
+find_package(urdf REQUIRED)
+find_package(robot_math REQUIRED)
 find_package(pluginlib REQUIRED)
 
 pluginlib_export_plugin_description_file(hardware_interface plugins.xml)
@@ -23,6 +25,8 @@ ament_target_dependencies(
   hardwares
   "hardware_interface"
   "pluginlib"
+  "urdf"
+  "robot_math"
 )
 
 # Causes the visibility macros to use dllexport rather than dllimport,

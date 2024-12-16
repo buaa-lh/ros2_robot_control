@@ -89,7 +89,7 @@ def generate_launch_description():
         package="control_node",
         name = "control_node",
         executable="control_node",
-        parameters=[{"simulation": True}],
+        parameters=[params],
         # arguments=["--ros-args", "--params-file", params],
         output="both",
     )

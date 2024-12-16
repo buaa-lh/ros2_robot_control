@@ -1,32 +1,28 @@
 #include "hardware_interface/hardware_interface.hpp"
 #include <iostream>
+#include <vector>
 
 namespace hardwares
 {
-    class MyHardware: public hardware_interface::HardwareInterface
+    class SimulationHardware : public hardware_interface::HardwareInterface
     {
-        public:
-        MyHardware()
+    public:
+        typedef std::vector<double> state_type;
+        SimulationHardware()
         {
-
         }
-        void initialize() override
+        int initialize(const std::string &robot_description) override
         {
-            std::cout << "My hardware\n";
+            return hardware_interface::HardwareInterface::initialize(robot_description);
+            
         }
         void finalize() override
         {
-
         }
-        void expose_interface() override
-        {
-            
-        }
-
     };
 
-}  // namespace hardwares
+} // namespace hardwares
 
 #include <pluginlib/class_list_macros.hpp>
 
-PLUGINLIB_EXPORT_CLASS(hardwares::MyHardware, hardware_interface::HardwareInterface)
+PLUGINLIB_EXPORT_CLASS(hardwares::SimulationHardware, hardware_interface::HardwareInterface)
