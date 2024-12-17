@@ -47,6 +47,25 @@ install(
   RUNTIME DESTINATION bin
 )
 
+
+add_executable(test_controller src/test_controller.cpp)
+target_include_directories(test_controller PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include/${PROJECT_NAME}>)
+target_compile_features(test_controller PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
+
+ament_target_dependencies(
+  test_controller
+  "pluginlib"
+  "hardware_interface"
+  "controller_interface"
+  "robot_math"
+  "urdf"
+)
+
+install(TARGETS test_controller
+  DESTINATION lib/${PROJECT_NAME})
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights

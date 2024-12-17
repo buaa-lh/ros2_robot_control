@@ -29,6 +29,7 @@ ament_target_dependencies(
   "robot_math"
 )
 
+
 # Causes the visibility macros to use dllexport rather than dllimport,
 # which is appropriate when building the dll but not consuming it.
 target_compile_definitions(hardwares PRIVATE "HARDWARES_BUILDING_LIBRARY")
@@ -44,6 +45,23 @@ install(
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
 )
+
+
+add_executable(test_hardware src/test_hardware.cpp)
+target_include_directories(test_hardware PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include/${PROJECT_NAME}>)
+target_compile_features(test_hardware PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
+ament_target_dependencies(
+  test_hardware
+  "hardware_interface"
+  "pluginlib"
+  "urdf"
+  "robot_math"
+)
+install(TARGETS test_hardware
+        DESTINATION lib/${PROJECT_NAME})
+
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

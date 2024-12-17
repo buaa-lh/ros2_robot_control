@@ -18,22 +18,7 @@ namespace hardware_interface
             else 
                 return configure(robot_description);
     }
-    virtual void finalize() {}
-    virtual void read() {}
-    virtual void write() {}
-    CommandInterface &get_command_interface() { return command_; }
-    const StateInterface &get_state_interface() { return state_; }
-    const std::vector<std::string> &get_joint_name() { return joint_names_; }
-    int get_dof() {return dof_;}
-    const urdf::Model& get_urdf_model() { return robot_model_;}
-    const robot_math::Robot& get_robot_model() { return robot_;}
-    void write_state(const std::vector<double> &state, const std::vector<double> &force) // for simulation
-    {
-      std::copy(state.begin(), state.begin() + dof_, state_["position"].begin());
-      std::copy(state.begin() + dof_, state.begin() + 2 * dof_, state_["velocity"].begin());
-      state_["force"] = force;
-    }
-    int configure(const std::string &robot_description)
+    virtual int configure(const std::string &robot_description)
     {
       if (robot_model_.initString(robot_description))
       {
@@ -46,28 +31,48 @@ namespace hardware_interface
           }
         }
         dof_ = joint_names_.size();
-        command_["position"].resize(dof_);
-        std::fill(command_["position"].begin(), command_["position"].end(), 0);
-        command_["velocity"].resize(dof_);
-        std::fill(command_["velocity"].begin(), command_["velocity"].end(), 0);
-        command_["torque"].resize(dof_);
-        std::fill(command_["torque"].begin(), command_["torque"].end(), 0);
+        state_names_.emplace_back("position");
+        state_names_.emplace_back("velocity");
+        state_names_.emplace_back("torque");
 
-        state_["position"].resize(dof_);
-        std::fill(state_["position"].begin(), state_["position"].end(), 0);
-        state_["velocity"].resize(dof_);
-        std::fill(state_["velocity"].begin(), state_["velocity"].end(), 0);
-        state_["torque"].resize(dof_);
-        std::fill(state_["torque"].begin(), state_["torque"].end(), 0);
-        state_["force"].resize(6);
-        std::fill(state_["force"].begin(), state_["force"].end(), 0);
+        command_names_.emplace_back("position");
+        command_names_.emplace_back("velocity");
+        command_names_.emplace_back("torque");
+        for(auto & name : state_names_)
+        {
+            state_.emplace(name, std::vector<double>(dof_, 0.0));
+        }
+        for(auto & name : command_names_)
+        {
+            command_.emplace(name, std::vector<double>(dof_, 0.0));
+        }
+        state_.emplace("force", std::vector<double>(6, 0.0));
         return 1;
       }
       return 0;
     }
-
+    virtual void finalize() {}
+    virtual void read() {}
+    virtual void write() {}
+    CommandInterface &get_command_interface() { return command_; }
+    const StateInterface &get_state_interface() { return state_; }
+    const std::vector<std::string> &get_joint_name() { return joint_names_; }
+    const std::vector<std::string> &get_state_name() { return state_names_; }
+    const std::vector<std::string> &get_command_name() { return command_names_; }
+    int get_dof() {return dof_;}
+    const urdf::Model& get_urdf_model() { return robot_model_;}
+    const robot_math::Robot& get_robot_model() { return robot_;}
+    void write_state(const std::vector<double> &state, const std::vector<double> &force) // for simulation
+    {
+      std::copy(state.begin(), state.begin() + dof_, state_["position"].begin());
+      std::copy(state.begin() + dof_, state.begin() + 2 * dof_, state_["velocity"].begin());
+      state_["force"] = force;
+    }
+    
   protected:
     HardwareInterface() : dof_(0) {}
+    std::vector<std::string> state_names_;
+    std::vector<std::string> command_names_;
     CommandInterface command_;
     StateInterface state_;
     std::vector<std::string> joint_names_;

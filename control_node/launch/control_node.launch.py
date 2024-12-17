@@ -93,15 +93,7 @@ def generate_launch_description():
         # arguments=["--ros-args", "--params-file", params],
         output="both",
     )
-    joint_state_publisher = Node(
-        package="joint_state_publisher_gui",
-        name = "joint_state_publisher_gui",
-        executable="joint_state_publisher_gui",
-        remappings=[('/joint_states', '/gui/joint_states')],
-        # parameters=[params, {"robot_description": robot_description}],
-        # arguments=["--ros-args", "--params-file", params],
-        output="both",
-    )
+
 
     robot_monitor = Node(
             package='robot_monitor',
@@ -149,20 +141,18 @@ def generate_launch_description():
         return robot_monitor
     
     handlers = [
-        # RegisterEventHandler(event_handler=OnProcessStart(target_action=robot_state_publisher,
-        #                                                   on_start=start_rviz_node)),
-        # RegisterEventHandler(event_handler=OnProcessStart(target_action=rviz_node,
-        #                                                   on_start=start_monitor_node)),
-        # RegisterEventHandler(event_handler=OnProcessStart(target_action=robot_monitor,
-        #                                                   on_start=start_control_node)),
+        RegisterEventHandler(event_handler=OnProcessStart(target_action=robot_state_publisher,
+                                                          on_start=start_rviz_node)),
+        RegisterEventHandler(event_handler=OnProcessStart(target_action=rviz_node,
+                                                          on_start=start_monitor_node)),
+        RegisterEventHandler(event_handler=OnProcessStart(target_action=robot_monitor,
+                                                          on_start=start_control_node)),
     ]
 
     nodes = arguments + handlers + [
             robot_state_publisher,
-            rviz_node,
-            joint_state_publisher,
-            control_node,
-            robot_monitor,
+            # robot_state_publisher,
+            # control_node,
             ]
 
     return LaunchDescription(nodes)
