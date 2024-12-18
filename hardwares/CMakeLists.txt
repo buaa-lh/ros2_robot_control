@@ -12,6 +12,7 @@ find_package(hardware_interface REQUIRED)
 find_package(urdf REQUIRED)
 find_package(robot_math REQUIRED)
 find_package(pluginlib REQUIRED)
+find_package(rclcpp_lifecycle)
 
 pluginlib_export_plugin_description_file(hardware_interface plugins.xml)
 
@@ -27,6 +28,7 @@ ament_target_dependencies(
   "pluginlib"
   "urdf"
   "robot_math"
+  "rclcpp_lifecycle"
 )
 
 
@@ -58,6 +60,8 @@ ament_target_dependencies(
   "pluginlib"
   "urdf"
   "robot_math"
+  "rclcpp_lifecycle"
+  
 )
 install(TARGETS test_hardware
         DESTINATION lib/${PROJECT_NAME})

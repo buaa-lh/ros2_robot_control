@@ -87,7 +87,6 @@ def generate_launch_description():
     
     control_node = Node(
         package="control_node",
-        name = "control_node",
         executable="control_node",
         parameters=[params],
         # arguments=["--ros-args", "--params-file", params],

@@ -4,14 +4,13 @@
 int main(int argc, char** argv)
 {
   // To avoid unused parameter warnings
-  (void) argc;
-  (void) argv;
+  rclcpp::init(argc, argv);
 
   pluginlib::ClassLoader<controller_interface::ControllerInterface> loader("controller_interface", "controller_interface::ControllerInterface");
 
   try
   {
-    std::shared_ptr<controller_interface::ControllerInterface> my_hard = loader.createSharedInstance("controllers::MyController");
+    std::shared_ptr<controller_interface::ControllerInterface> my_hard = loader.createSharedInstance("controllers::RobotController");
    
   }
   catch(pluginlib::PluginlibException& ex)

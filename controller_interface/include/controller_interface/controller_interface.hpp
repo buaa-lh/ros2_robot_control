@@ -1,23 +1,47 @@
 #ifndef CONTROLLER_INTERFACE_HPP
 #define CONTROLLER_INTERFACE_HPP
+#include "rclcpp_lifecycle/lifecycle_node.hpp"
+#include "rclcpp/rclcpp.hpp"
+#include "robot_math/robot_math.hpp"
 #include "hardware_interface/command_interface.hpp"
 #include "hardware_interface/state_interface.hpp"
-namespace robot_math
-{
-  class Robot;
-}
-
 namespace controller_interface
 {
-  class ControllerInterface
+  using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
+  class ControllerInterface : public rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface
   {
   public:
     virtual ~ControllerInterface() {}
-    virtual void update(const robot_math::Robot* robot, const hardware_interface::StateInterface *state,
-                        hardware_interface::CommandInterface *command) = 0;
+    ControllerInterface();
+    int initialize(const std::string &name, const std::string &description,
+                   const std::string &name_space = "", const rclcpp::NodeOptions &node_options = rclcpp::NodeOptions());
+    void finalize();
+
+    void loarn_interface(hardware_interface::CommandInterface *command,
+                         const hardware_interface::StateInterface *state);
+
+    std::shared_ptr<rclcpp_lifecycle::LifecycleNode> get_node() { return node_; }
+
+    virtual void update(const rclcpp::Time &t, const rclcpp::Duration &period) = 0;
+
+    virtual CallbackReturn on_configure(const rclcpp_lifecycle::State &previous_state);
+
+    virtual CallbackReturn on_cleanup(const rclcpp_lifecycle::State &previous_state);
+
+    virtual CallbackReturn on_shutdown(const rclcpp_lifecycle::State &previous_state);
+
+    virtual CallbackReturn on_activate(const rclcpp_lifecycle::State &previous_state);
+
+    virtual CallbackReturn on_deactivate(const rclcpp_lifecycle::State &previous_state);
+
+    virtual CallbackReturn on_error(const rclcpp_lifecycle::State &previous_state);
 
   protected:
-    ControllerInterface() {}
+    std::shared_ptr<rclcpp_lifecycle::LifecycleNode> node_;
+    std::string description_;
+    robot_math::Robot robot_;
+    hardware_interface::CommandInterface *command_;
+    const hardware_interface::StateInterface *state_;
   };
 
 } // namespace controller_interface

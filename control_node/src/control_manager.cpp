@@ -33,7 +33,7 @@ namespace control_node
         robot_description_ = this->get_parameter_or<std::string>("robot_description", "");
         std::string hardware_class = this->get_parameter_or<std::string>("hardware_class", "");
         std::string controller_class = this->get_parameter_or<std::string>("controller_class", "");
-        hardware_loader_ = std::make_unique<pluginlib::ClassLoader<hardware_interface::HardwareInterface>>("hardware_interface", "hardware_interface::HardwareInterface");
+        hardware_loader_ = std::make_unique<pluginlib::ClassLoader<hardware_interface::RobotInterface>>("hardware_interface", "hardware_interface::RobotInterface");
         controller_loader_ = std::make_unique<pluginlib::ClassLoader<controller_interface::ControllerInterface>>("controller_interface", "controller_interface::ControllerInterface");
         try
         {
@@ -68,12 +68,14 @@ namespace control_node
             std::this_thread::sleep_for(std::chrono::microseconds(1000000));
         } while (ready);
 
-        hardware_->initialize(robot_description_);
+        hardware_->initialize("test_robot", robot_description_);
+        controller_->initialize("test_controller", robot_description_);
+        controller_->loarn_interface(&hardware_->get_command_interface(), &hardware_->get_state_interface());
         dof_ = hardware_->get_dof();
         robot_ = &hardware_->get_robot_model();
         command_ = &hardware_->get_command_interface();
         state_ = &hardware_->get_state_interface();
-        joint_names_ = hardware_->get_joint_name();
+        joint_names_ = hardware_->get_joint_names();
         robot_model_ = &hardware_->get_urdf_model();
 
         RCLCPP_INFO(get_logger(), "robot ok");
@@ -104,7 +106,7 @@ namespace control_node
 
     void control_node::ControlManager::read(const rclcpp::Time &t, const rclcpp::Duration &period)
     {
-        hardware_->read();
+        hardware_->read(t, period);
         auto states = std::make_shared<sensor_msgs::msg::JointState>();
         states->name = joint_names_;
         states->position = state_->at("position");
@@ -120,12 +122,12 @@ namespace control_node
 
     void ControlManager::update(const rclcpp::Time &t, const rclcpp::Duration &period)
     {
-        controller_->update(robot_, state_, command_);
+        controller_->update(t, period);
     }
 
     void ControlManager::write(const rclcpp::Time &t, const rclcpp::Duration &period)
     {
-        hardware_->write();
+        hardware_->write(t, period);
     }
 
     Eigen::MatrixXd ControlManager::simulation_external_force(double t)
@@ -208,7 +210,7 @@ namespace control_node
         typedef controlled_runge_kutta<error_stepper_type> controlled_stepper_type;
         state_type x0{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
         sim_start_time_ = std::chrono::steady_clock::now();
-        integrate_adaptive(make_controlled(1.0e-9, 1.0e-5, error_stepper_type()), dynamics, x0, 0.0, 10.0, 0.01, observer);
+        integrate_adaptive(make_controlled(1.0e-10, 1.0e-6, error_stepper_type()), dynamics, x0, 0.0, 10.0, 0.001, observer);
         // size_t steps = integrate_adaptive(runge_kutta4<std::vector<double>>(), dynamics, x0, 0.0, time, 0.01, observer);
     }
 
@@ -218,7 +220,8 @@ namespace control_node
         std::vector<double> f{fext(0, n - 1), fext(1, n - 1), fext(2, n - 1),
                               fext(3, n - 1), fext(4, n - 1), fext(5, n - 1)};
         hardware_->write_state(x, f);
-        controller_->update(robot_, state_, command_);
+        auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<double>(t));
+        controller_->update(rclcpp::Time(time.count()), std::chrono::duration<double>(0.0));
         return (*command_)["torque"];
     }
 

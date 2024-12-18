@@ -9,7 +9,7 @@
 #include "robot_math/robot_math.hpp"
 #include <functional>
 #include <chrono>
-#include "hardware_interface/hardware_interface.hpp"
+#include "hardware_interface/robot_interface.hpp"
 #include "controller_interface/controller_interface.hpp"
 #include <pluginlib/class_loader.hpp>
 
@@ -39,9 +39,9 @@ namespace control_node
         void robot_joint_command_callback(sensor_msgs::msg::JointState::SharedPtr js);
 
     protected:
-        pluginlib::UniquePtr<pluginlib::ClassLoader<hardware_interface::HardwareInterface>> hardware_loader_;
+        pluginlib::UniquePtr<pluginlib::ClassLoader<hardware_interface::RobotInterface>> hardware_loader_;
         pluginlib::UniquePtr<pluginlib::ClassLoader<controller_interface::ControllerInterface>> controller_loader_;
-        std::shared_ptr<hardware_interface::HardwareInterface> hardware_;
+        std::shared_ptr<hardware_interface::RobotInterface> hardware_;
         std::shared_ptr<controller_interface::ControllerInterface> controller_;
         std::shared_ptr<rclcpp::Executor> executor_;
         int update_rate_;

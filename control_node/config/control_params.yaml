@@ -4,5 +4,5 @@ control_node:
     cmd_name: gui/joint_states
     simulation: true
     sim_real_time: true
-    hardware_class: hardwares::SimulationHardware
-    controller_class: controllers::MyController
+    hardware_class: hardwares::SimulationRobot
+    controller_class: controllers::RobotController

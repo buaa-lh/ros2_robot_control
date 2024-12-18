@@ -12,6 +12,7 @@ find_package(controller_interface REQUIRED)
 find_package(hardware_interface REQUIRED)
 find_package(robot_math REQUIRED)
 find_package(urdf REQUIRED)
+find_package(rclcpp_lifecycle)
 find_package(pluginlib REQUIRED)
 
 pluginlib_export_plugin_description_file(controller_interface plugins.xml)
@@ -29,6 +30,7 @@ ament_target_dependencies(
   "hardware_interface"
   "robot_math"
   "urdf"
+  "rclcpp_lifecycle"
 )
 
 # Causes the visibility macros to use dllexport rather than dllimport,

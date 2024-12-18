@@ -1,5 +1,5 @@
 <library path="hardwares">
-  <class type="hardwares::SimulationHardware" base_class_type="hardware_interface::HardwareInterface">
-    <description>This is my hardware plugin.</description>
+  <class type="hardwares::SimulationRobot" base_class_type="hardware_interface::RobotInterface">
+    <description>This is my robot plugin.</description>
   </class>
 </library>
