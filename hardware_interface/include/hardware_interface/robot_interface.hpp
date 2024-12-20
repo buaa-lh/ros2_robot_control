@@ -23,7 +23,7 @@ namespace hardware_interface
     int get_dof() { return dof_; }
     const urdf::Model &get_urdf_model() { return robot_model_; }
     const robot_math::Robot &get_robot_model() { return robot_; }
-
+    std::vector<rclcpp::node_interfaces::NodeBaseInterface::SharedPtr> get_all_nodes();
     void robot_dynamics(const std::vector<double> &x, std::vector<double> &dx, double t,
                         std::function<Eigen::MatrixXd (double )> f_external, 
                         std::function<std::vector<double> (double, const std::vector<double> &, const Eigen::MatrixXd &)> controller);
@@ -43,6 +43,7 @@ namespace hardware_interface
     int dof_;
     urdf::Model robot_model_;
     robot_math::Robot robot_;
+    std::map<std::string, hardware_interface::HardwareInterface::SharedPtr> components;
   };
 
 } // namespace hardware

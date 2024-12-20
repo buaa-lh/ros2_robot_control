@@ -1,5 +1,5 @@
 #include "controller_interface/controller_interface.hpp"
-
+#include "lifecycle_msgs/msg/state.hpp"
 namespace controller_interface
 {
     ControllerInterface::ControllerInterface() : command_(nullptr), state_(nullptr)
@@ -31,8 +31,7 @@ namespace controller_interface
             std::bind(&ControllerInterface::on_error, this, std::placeholders::_1));
 
         auto state = node_->configure();
-        if (state.label() == "inactive")
-
+        if (state.id() == lifecycle_msgs::msg::State::PRIMARY_STATE_INACTIVE)
         {
             RCLCPP_INFO(node_->get_logger(), "success");
             return 1;
@@ -50,6 +49,7 @@ namespace controller_interface
 
     void ControllerInterface::finalize()
     {
+       
         node_->shutdown();
     }
 

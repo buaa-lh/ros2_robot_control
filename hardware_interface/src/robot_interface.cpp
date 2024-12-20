@@ -12,7 +12,7 @@ namespace hardware_interface
         if (!robot_description.empty() && robot_model_.initString(robot_description))
         {
             robot_ = robot_math::urdf_to_robot(robot_description);
-            for (auto j : robot_model_.joints_)
+            for (auto & j : robot_model_.joints_)
             {
                 if (j.second->type != urdf::Joint::FIXED)
                 {
@@ -40,7 +40,15 @@ namespace hardware_interface
         }
         return 0;
     }
-
+    std::vector<rclcpp::node_interfaces::NodeBaseInterface::SharedPtr> RobotInterface::get_all_nodes()
+    {
+        std::vector<rclcpp::node_interfaces::NodeBaseInterface::SharedPtr> nodes{node_->get_node_base_interface()};
+        for(auto &p : components)
+        {
+            nodes.push_back(p.second->get_node()->get_node_base_interface());
+        }
+        return nodes;
+    }
     CallbackReturn RobotInterface::on_configure(const rclcpp_lifecycle::State &previous_state)
     {
         if (configure_urdf(description_))

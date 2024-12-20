@@ -32,7 +32,7 @@ namespace control_node
         Eigen::MatrixXd simulation_external_force(double t);
         void simulation_observer(const std::vector<double> &x, double t);
         bool is_simulation();
-
+        std::vector<rclcpp::node_interfaces::NodeBaseInterface::SharedPtr> get_all_nodes();
     protected:
         void robot_description_callback(std_msgs::msg::String::SharedPtr desp);
         void robot_joint_command_callback(sensor_msgs::msg::JointState::SharedPtr js);
@@ -40,7 +40,8 @@ namespace control_node
     protected:
         pluginlib::UniquePtr<pluginlib::ClassLoader<hardware_interface::RobotInterface>> hardware_loader_;
         pluginlib::UniquePtr<pluginlib::ClassLoader<controller_interface::ControllerInterface>> controller_loader_;
-        std::shared_ptr<hardware_interface::RobotInterface> hardware_;
+        std::shared_ptr<hardware_interface::RobotInterface> robot_;
+        std::vector<controller_interface::ControllerInterface::SharedPtr> controllers_;
         std::shared_ptr<controller_interface::ControllerInterface> controller_;
         std::shared_ptr<rclcpp::Executor> executor_;
         int update_rate_;

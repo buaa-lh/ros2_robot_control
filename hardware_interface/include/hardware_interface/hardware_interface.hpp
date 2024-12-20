@@ -12,6 +12,7 @@ namespace hardware_interface
   class HardwareInterface : public rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface
   {
   public:
+    using SharedPtr = std::shared_ptr<HardwareInterface>;
     virtual ~HardwareInterface() {}
     HardwareInterface();
     int initialize(const std::string &name, const std::string &description,
@@ -20,7 +21,7 @@ namespace hardware_interface
     void finalize();
     virtual void read(const rclcpp::Time &t, const rclcpp::Duration &period) {}
     virtual void write(const rclcpp::Time &t, const rclcpp::Duration &period) {}
-
+    rclcpp_lifecycle::State get_state() { node_->get_current_state(); }
     CommandInterface &get_command_interface() { return command_; }
     const StateInterface &get_state_interface() { return state_; }
     const std::vector<std::string> &get_state_names() { return state_names_; }
