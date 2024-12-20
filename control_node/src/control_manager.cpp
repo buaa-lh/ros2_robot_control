@@ -10,12 +10,7 @@ namespace control_node
         : rclcpp::Node(node_name, name_space, option),
           executor_(executor),
           param_listener_(std::make_shared<ParamListener>(this->get_node_parameters_interface())),
-          is_new_cmd_available_(false),
-          robot_(nullptr),
-          robot_model_(nullptr),
-          command_(nullptr),
-          state_(nullptr),
-          dof_(0)
+          is_new_cmd_available_(false)
     {
         params_ = param_listener_->get_params();
         update_rate_ = params_.update_rate;
@@ -71,25 +66,13 @@ namespace control_node
         hardware_->initialize("test_robot", robot_description_);
         controller_->initialize("test_controller", robot_description_);
         controller_->loarn_interface(&hardware_->get_command_interface(), &hardware_->get_state_interface());
-        dof_ = hardware_->get_dof();
-        robot_ = &hardware_->get_robot_model();
-        command_ = &hardware_->get_command_interface();
-        state_ = &hardware_->get_state_interface();
-        joint_names_ = hardware_->get_joint_names();
-        robot_model_ = &hardware_->get_urdf_model();
-
         RCLCPP_INFO(get_logger(), "robot ok");
     }
 
     void ControlManager::shutdown_robot()
     {
         hardware_->finalize();
-        dof_ = 0;
-        command_ = nullptr;
-        state_ = nullptr;
-        robot_model_ = nullptr;
-        robot_ = nullptr;
-        joint_names_.clear();
+
     }
 
     void ControlManager::robot_description_callback(std_msgs::msg::String::SharedPtr desp)
@@ -108,10 +91,10 @@ namespace control_node
     {
         hardware_->read(t, period);
         auto states = std::make_shared<sensor_msgs::msg::JointState>();
-        states->name = joint_names_;
-        states->position = state_->at("position");
-        states->velocity = state_->at("velocity");
-        states->effort = state_->at("effort");
+        states->name = hardware_->get_joint_names();
+        states->position = hardware_->get_state_interface().at("position");
+        states->velocity = hardware_->get_state_interface().at("velocity");
+        states->effort = hardware_->get_state_interface().at("effort");
         states->header.stamp = t;
         if (real_time_publisher_->trylock())
         {
@@ -132,28 +115,7 @@ namespace control_node
 
     Eigen::MatrixXd ControlManager::simulation_external_force(double t)
     {
-        return Eigen::MatrixXd::Zero(6, dof_);
-    }
-    void ControlManager::robot_dynamics(const std::vector<double> &x, std::vector<double> &dx, double t)
-    {
-        int n = dof_;
-        std::vector<double> q(n), dq(n), ddq(n);
-        std::fill(ddq.begin(), ddq.end(), 0.0);
-        std::copy(x.begin(), x.begin() + n, q.begin());
-        std::copy(x.begin() + n, x.begin() + 2 * n, dq.begin());
-        Eigen::MatrixXd f_ext = simulation_external_force(t);
-        Eigen::VectorXd gvtao = robot_math::inverse_dynamics(robot_, q, dq, ddq, f_ext);
-        std::vector<double> cmd = simulation_controller(t, x, f_ext);
-        Eigen::Map<Eigen::VectorXd> tau(&cmd[0], n);
-        int m = cmd.size() - n;
-        dx.resize(2 * n + m);
-        std::copy(dq.begin(), dq.end(), dx.begin());
-        Eigen::MatrixXd M = mass_matrix(robot_, q);
-        Eigen::VectorXd damping = Eigen::VectorXd::Zero(n);
-        for (int i = 0; i < dof_; i++)
-            damping(i) = dq[i] * robot_model_->joints_.at(joint_names_[i])->dynamics->damping;
-        Eigen::Map<Eigen::VectorXd>(&dx[n], n) = M.ldlt().solve(tau - gvtao - damping);
-        std::copy(cmd.begin() + n, cmd.end(), dx.begin() + 2 * n);
+        return Eigen::MatrixXd::Zero(6, hardware_->get_dof());
     }
     void ControlManager::simulation_observer(const std::vector<double> &x, double t)
     {
@@ -163,16 +125,17 @@ namespace control_node
         // std::cerr << "\n";
         // std::copy(x.begin(), x.begin() + dof_, joint_position_.begin());
         // std::copy(x.begin() + dof_, x.begin() + 2 * dof_, joint_velocity_.begin());
+        int n = hardware_->get_dof();
         if (t == 0)
         {
             Eigen::MatrixXd f_ext = simulation_external_force(t);
             simulation_controller(t, x, f_ext);
         }
         auto states = std::make_shared<sensor_msgs::msg::JointState>();
-        states->name = joint_names_;
-        std::copy(x.begin(), x.begin() + dof_, std::back_inserter(states->position));
-        std::copy(x.begin() + dof_, x.begin() + 2 * dof_, std::back_inserter(states->velocity));
-        states->effort = command_->at("torque");
+        states->name = hardware_->get_joint_names();
+        std::copy(x.begin(), x.begin() + n, std::back_inserter(states->position));
+        std::copy(x.begin() + n, x.begin() + 2 * n, std::back_inserter(states->velocity));
+        states->effort = hardware_->get_command_interface().at("torque");
         auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<double>(t));
         states->header.stamp = rclcpp::Time(time.count());
         if (real_time_publisher_->trylock())
@@ -196,11 +159,21 @@ namespace control_node
     void ControlManager::start_simulation(double time)
     {
         typedef std::vector<double> state_type;
-        auto dynamics = std::bind(&ControlManager::robot_dynamics, this,
+
+        auto f_external = std::bind(&ControlManager::simulation_external_force, this,
+                                  std::placeholders::_1);
+
+        auto controller = std::bind(&ControlManager::simulation_controller, this,
                                   std::placeholders::_1,
                                   std::placeholders::_2,
                                   std::placeholders::_3);
 
+        auto dynamics = std::bind(&hardware_interface::RobotInterface::robot_dynamics, hardware_.get(),
+                                  std::placeholders::_1,
+                                  std::placeholders::_2,
+                                  std::placeholders::_3,
+                                  std::cref(f_external), std::cref(controller));
+      
         auto observer = std::bind(&ControlManager::simulation_observer, this,
                                   std::placeholders::_1,
                                   std::placeholders::_2);
@@ -210,19 +183,23 @@ namespace control_node
         typedef controlled_runge_kutta<error_stepper_type> controlled_stepper_type;
         state_type x0{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
         sim_start_time_ = std::chrono::steady_clock::now();
+        auto dx = std::vector<double>();
         integrate_adaptive(make_controlled(1.0e-10, 1.0e-6, error_stepper_type()), dynamics, x0, 0.0, 10.0, 0.001, observer);
         // size_t steps = integrate_adaptive(runge_kutta4<std::vector<double>>(), dynamics, x0, 0.0, time, 0.01, observer);
     }
 
     std::vector<double> ControlManager::simulation_controller(double t, const std::vector<double> &x, const Eigen::MatrixXd &fext)
     {
-        int n = dof_;
+        int n = hardware_->get_dof();
         std::vector<double> f{fext(0, n - 1), fext(1, n - 1), fext(2, n - 1),
                               fext(3, n - 1), fext(4, n - 1), fext(5, n - 1)};
         hardware_->write_state(x, f);
+        controller_->write_state(x.begin() + 2 * n, x.end());
         auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<double>(t));
         controller_->update(rclcpp::Time(time.count()), std::chrono::duration<double>(0.0));
-        return (*command_)["torque"];
+        auto cmd = hardware_->get_command_interface().at("torque");
+        cmd.insert(cmd.end(), controller_->get_internal_state().begin(), controller_->get_internal_state().end());
+        return cmd;
     }
 
 }

@@ -35,7 +35,6 @@ namespace hardware_interface
 
         auto state = node_->configure();
         if (state.label() == "inactive")
-
         {
             RCLCPP_INFO(node_->get_logger(), "success");
             return 1;

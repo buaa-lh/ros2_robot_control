@@ -13,6 +13,12 @@ namespace controller_interface
   public:
     virtual ~ControllerInterface() {}
     ControllerInterface();
+    const std::vector<double> & get_internal_state() { return internal_state_;} 
+    // for simulation only
+    void write_state(std::vector<double>::const_iterator s,  std::vector<double>::const_iterator e) 
+    {
+      std::copy(s, e, internal_state_.begin());
+    }
     int initialize(const std::string &name, const std::string &description,
                    const std::string &name_space = "", const rclcpp::NodeOptions &node_options = rclcpp::NodeOptions());
     void finalize();
@@ -42,6 +48,7 @@ namespace controller_interface
     robot_math::Robot robot_;
     hardware_interface::CommandInterface *command_;
     const hardware_interface::StateInterface *state_;
+    std::vector<double> internal_state_; // e.g. integration of state
   };
 
 } // namespace controller_interface

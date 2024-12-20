@@ -27,7 +27,6 @@ namespace control_node
         void read(const rclcpp::Time &t, const rclcpp::Duration &period);
         void update(const rclcpp::Time &t, const rclcpp::Duration &period);
         void write(const rclcpp::Time &t, const rclcpp::Duration &period);
-        void robot_dynamics(const std::vector<double> &x, std::vector<double> &dx, double t);
         void start_simulation(double time = 10.0); // seconds
         std::vector<double> simulation_controller(double t, const std::vector<double> &x, const Eigen::MatrixXd &fext);
         Eigen::MatrixXd simulation_external_force(double t);
@@ -54,14 +53,9 @@ namespace control_node
         rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_state_publisher_;
         rclcpp::Subscription<std_msgs::msg::String>::SharedPtr description_sub_;
         std::shared_ptr<realtime_tools::RealtimePublisher<sensor_msgs::msg::JointState>> real_time_publisher_;
-        const robot_math::Robot *robot_;
-        const urdf::Model *robot_model_;
-        hardware_interface::CommandInterface *command_;
-        const hardware_interface::StateInterface *state_;
-        std::vector<std::string> joint_names_;
+ 
         std::mutex robot_desp_mutex_;
         volatile bool is_new_cmd_available_;
-        int dof_;
         bool is_simulation_;
         bool is_sim_real_time_;
         std::chrono::time_point<std::chrono::steady_clock> sim_start_time_;

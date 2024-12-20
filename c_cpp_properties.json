@@ -1,0 +1,37 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/wjc/ros2_ws/install/control_node/include/control_node_parameters",
+        "/home/wjc/ros2_ws/install/control_node/include",
+        "/home/wjc/ros2_ws/install/robot_math/include",
+        "/home/wjc/ros2_ws/install/realtime_tools/include",
+        "/home/wjc/ros2_ws/install/hardware_interface/include",
+        "/home/wjc/ros2_ws/install/hardwares/include",
+        "/home/wjc/ros2_ws/install/controller_interface/include",
+        "/home/wjc/ros2_ws/install/controllers/include",
+        "/opt/ros/jazzy/include/**",
+        "/home/wjc/ros2_ws/src/realtime_tools/include",
+        "/home/wjc/ros2_ws/src/ros2_robot_control/control_node/include",
+        "/home/wjc/ros2_ws/src/ros2_robot_control/robot_math/include",
+        "/home/wjc/ros2_ws/src/ros2_robot_control/hardware_interface/include",
+        "/home/wjc/ros2_ws/src/ros2_robot_control/hardwares/include",
+        "/home/wjc/ros2_ws/src/ros2_robot_control/controller_interface/include",
+        "/home/wjc/ros2_ws/src/ros2_robot_control/controllers/include",
+        "/usr/include/x86_64-linux-gnu/qt6/**",
+        "/home/wjc/ros2_ws/build/robot_monitor/robot_monitor_autogen/include"
+
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}

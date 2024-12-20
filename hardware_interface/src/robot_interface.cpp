@@ -40,7 +40,6 @@ namespace hardware_interface
         }
         return 0;
     }
-    
 
     CallbackReturn RobotInterface::on_configure(const rclcpp_lifecycle::State &previous_state)
     {
@@ -50,28 +49,27 @@ namespace hardware_interface
             return CallbackReturn::ERROR;
     }
 
-    CallbackReturn RobotInterface::on_cleanup(const rclcpp_lifecycle::State &previous_state)
+    void RobotInterface::robot_dynamics(const std::vector<double> &x, std::vector<double> &dx, double t,
+                                        std::function<Eigen::MatrixXd (double)> f_external,
+                                        std::function<std::vector<double> (double, const std::vector<double> &, const Eigen::MatrixXd &)> controller)
     {
-        return CallbackReturn::SUCCESS;
-    }
-
-    CallbackReturn RobotInterface::on_shutdown(const rclcpp_lifecycle::State &previous_state)
-    {
-        return CallbackReturn::SUCCESS;
-    }
-
-    CallbackReturn RobotInterface::on_activate(const rclcpp_lifecycle::State &previous_state)
-    {
-        return CallbackReturn::SUCCESS;
-    }
-
-    CallbackReturn RobotInterface::on_deactivate(const rclcpp_lifecycle::State &previous_state)
-    {
-        return CallbackReturn::SUCCESS;
-    }
-
-    CallbackReturn RobotInterface::on_error(const rclcpp_lifecycle::State &previous_state)
-    {
-        return CallbackReturn::SUCCESS;
+        int n = dof_;
+        std::vector<double> q(n), dq(n), ddq(n);
+        std::fill(ddq.begin(), ddq.end(), 0.0);
+        std::copy(x.begin(), x.begin() + n, q.begin());
+        std::copy(x.begin() + n, x.begin() + 2 * n, dq.begin());
+        Eigen::MatrixXd f_ext = f_external(t);
+        Eigen::VectorXd gvtao = robot_math::inverse_dynamics(&robot_, q, dq, ddq, f_ext);
+        std::vector<double> cmd = controller(t, x, f_ext);
+        Eigen::Map<Eigen::VectorXd> tau(&cmd[0], n);
+        int m = cmd.size() - n;
+        dx.resize(2 * n + m);
+        std::copy(dq.begin(), dq.end(), dx.begin());
+        Eigen::MatrixXd M = mass_matrix(&robot_, q);
+        Eigen::VectorXd damping = Eigen::VectorXd::Zero(n);
+        for (int i = 0; i < dof_; i++)
+            damping(i) = dq[i] * robot_model_.joints_.at(joint_names_[i])->dynamics->damping;
+        Eigen::Map<Eigen::VectorXd>(&dx[n], n) = M.ldlt().solve(tau - gvtao - damping);
+        std::copy(cmd.begin() + n, cmd.end(), dx.begin() + 2 * n);
     }
 }
