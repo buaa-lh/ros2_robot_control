@@ -5,6 +5,7 @@ control_node:
     simulation: true
     sim_real_time: true
     hardware: hardwares::SimulationRobot
-    sim_controller: controllers::RobotController
-    controller: 
+    controllers: 
       - controllers::RobotController
+    
+    active_controller: 0

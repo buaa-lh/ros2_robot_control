@@ -13,7 +13,7 @@ namespace hardware_interface
 
         description_ = description;
         node_ = std::make_shared<rclcpp_lifecycle::LifecycleNode>(
-            name, name_space, node_options, true); // disable LifecycleNode service interfaces
+            name, name_space, node_options, false); // disable LifecycleNode service interfaces or, bad_alloc exception occur!
 
         node_->register_on_configure(
             std::bind(&HardwareInterface::on_configure, this, std::placeholders::_1));

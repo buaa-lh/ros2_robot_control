@@ -8,7 +8,6 @@ namespace controllers
     public:
         RobotController()
         {
-            std::cout << "in robot controller\n";
         }
         void update(const rclcpp::Time &t, const rclcpp::Duration &period) override
         {

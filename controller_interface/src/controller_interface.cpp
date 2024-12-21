@@ -10,7 +10,7 @@ namespace controller_interface
     {
         description_ = description;
         node_ = std::make_shared<rclcpp_lifecycle::LifecycleNode>(
-            name, name_space, node_options, true); // disable LifecycleNode service interfaces
+            name, name_space, node_options, false); // disable LifecycleNode service interfaces
 
         node_->register_on_configure(
             std::bind(&ControllerInterface::on_configure, this, std::placeholders::_1));
@@ -49,7 +49,7 @@ namespace controller_interface
 
     void ControllerInterface::finalize()
     {
-       
+
         node_->shutdown();
     }
 

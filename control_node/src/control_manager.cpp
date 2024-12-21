@@ -20,23 +20,37 @@ namespace control_node
         command_receiver_ = this->create_subscription<sensor_msgs::msg::JointState>(joint_command_topic_name_, rclcpp::SensorDataQoS(),
                                                                                     std::bind(&ControlManager::robot_joint_command_callback, this, std::placeholders::_1));
         joint_state_publisher_ = this->create_publisher<sensor_msgs::msg::JointState>("joint_states", rclcpp::SensorDataQoS());
-        description_sub_ = this->create_subscription<std_msgs::msg::String>("robot_description", rclcpp::QoS(1).transient_local(),
-                                                                            std::bind(&ControlManager::robot_description_callback, this, std::placeholders::_1));
+        // description_sub_ = this->create_subscription<std_msgs::msg::String>("robot_description", rclcpp::QoS(1).transient_local(),
+        // std::bind(&ControlManager::robot_description_callback, this, std::placeholders::_1));
         real_time_publisher_ = std::make_shared<realtime_tools::RealtimePublisher<sensor_msgs::msg::JointState>>(joint_state_publisher_);
 
         robot_description_ = this->get_parameter_or<std::string>("robot_description", "");
+        if (robot_description_.empty())
+            throw std::runtime_error("robot description file is empty!");
+
         std::string hardware_class = this->get_parameter_or<std::string>("hardware", "");
-        std::vector<std::string> controller_class = this->get_parameter_or<std::vector<std::string>>("controller", std::vector<std::string>());
-        std::string controller_sim = this->get_parameter_or<std::string>("sim_controller", "");
+        std::vector<std::string> controller_class = this->get_parameter_or<std::vector<std::string>>("controllers", std::vector<std::string>());
         hardware_loader_ = std::make_unique<pluginlib::ClassLoader<hardware_interface::RobotInterface>>("hardware_interface", "hardware_interface::RobotInterface");
         controller_loader_ = std::make_unique<pluginlib::ClassLoader<controller_interface::ControllerInterface>>("controller_interface", "controller_interface::ControllerInterface");
         try
         {
             robot_ = hardware_loader_->createSharedInstance(hardware_class);
-            controller_ = controller_loader_->createSharedInstance(controller_sim);
-            for (auto &c : controller_class)
+            int pos = hardware_class.rfind(":");
+            hardware_class = hardware_class.substr(pos + 1);
+            robot_->initialize(hardware_class, robot_description_);
+            auto nodes = robot_->get_all_nodes();
+            for(auto & no : nodes)
+                executor_->add_node(no);
+
+            for (auto name : controller_class)
             {
-                controllers_.push_back(controller_loader_->createSharedInstance(c));
+                auto controller = controller_loader_->createSharedInstance(name);
+                pos = name.rfind(":");
+                name = name.substr(pos + 1);
+                controller->initialize(name, robot_description_);
+                controller->loarn_interface(&robot_->get_command_interface(), &robot_->get_state_interface());
+                controllers_.push_back(controller);
+                executor_->add_node(controller->get_node()->get_node_base_interface());
             }
         }
         catch (pluginlib::PluginlibException &ex)
@@ -44,6 +58,8 @@ namespace control_node
             RCLCPP_INFO(this->get_logger(), "%s", ex.what());
             throw ex;
         }
+        int active = this->get_parameter_or<int>("active_controller", 0);
+        active_controller_ = controllers_[active];
     }
 
     ControlManager::~ControlManager()
@@ -55,46 +71,36 @@ namespace control_node
         return update_rate_;
     }
 
-    void ControlManager::init_robot()
+    void ControlManager::wait_for_active_controller()
     {
-        bool ready;
-        do
+        while (!active_controller_)
         {
-            RCLCPP_INFO(get_logger(), "waiting for robot");
-            robot_desp_mutex_.lock();
-            ready = robot_description_.empty();
-            robot_desp_mutex_.unlock();
+            for (auto &controller : controllers_)
+            {
+                if (controller->get_state().id() == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
+                {
+                    active_controller_ = controller;
+                    break;
+                }
+                
+            }
             std::this_thread::sleep_for(std::chrono::microseconds(1000000));
-        } while (ready);
-
-        robot_->initialize("test_robot", robot_description_);
-        controller_->initialize("test_controller", robot_description_);
-        controller_->loarn_interface(&robot_->get_command_interface(), &robot_->get_state_interface());
-        for (auto &controller : controllers_)
-        {
-            controller->initialize("test_controller", robot_description_);
-            controller->loarn_interface(&robot_->get_command_interface(), &robot_->get_state_interface());
+            RCLCPP_INFO(this->get_logger(), "waiting for controller");
         }
-
-        RCLCPP_INFO(get_logger(), "robot ok");
+        RCLCPP_INFO(get_logger(), "%s controller activated", active_controller_->get_node()->get_name());
     }
 
     void ControlManager::shutdown_robot()
     {
+        RCLCPP_INFO(this->get_logger(), "shutting donw");
         robot_->finalize();
     }
-    std::vector<rclcpp::node_interfaces::NodeBaseInterface::SharedPtr> ControlManager::get_all_nodes()
-    {
-        auto nodes = robot_->get_all_nodes();
-        for (auto &c : controllers_)
-            nodes.push_back(c->get_node()->get_node_base_interface());
-        return nodes;
-    }
-    void ControlManager::robot_description_callback(std_msgs::msg::String::SharedPtr desp)
-    {
-        std::lock_guard<std::mutex> guard(robot_desp_mutex_);
-        robot_description_ = desp->data;
-    }
+
+    // void ControlManager::robot_description_callback(std_msgs::msg::String::SharedPtr desp)
+    // {
+    //     std::lock_guard<std::mutex> guard(robot_desp_mutex_);
+    //     robot_description_ = desp->data;
+    // }
 
     void ControlManager::robot_joint_command_callback(sensor_msgs::msg::JointState::SharedPtr js)
     {
@@ -120,13 +126,15 @@ namespace control_node
 
     void ControlManager::update(const rclcpp::Time &t, const rclcpp::Duration &period)
     {
-        for (auto &controller : controllers_)
-        {
-            if (controller->get_state().id() == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
-            {
-                controller->update(t, period);
-            }
-        }
+        if (active_controller_)
+            active_controller_->update(t, period);
+        // for (auto &controller : controllers_)
+        // {
+        //     if (controller->get_state().id() == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
+        //     {
+        //         controller->update(t, period);
+        //     }
+        // }
     }
 
     void ControlManager::write(const rclcpp::Time &t, const rclcpp::Duration &period)
@@ -218,10 +226,10 @@ namespace control_node
         auto std_time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<double>(t));
         auto time = rclcpp::Time(std_time.count());
         auto period = rclcpp::Duration(std::chrono::duration<double>(0.0));
-        controller_->write_state(x.begin() + 2 * n, x.end());
-        controller_->update(time, period);
+        active_controller_->write_state(x.begin() + 2 * n, x.end());
+        active_controller_->update(time, period);
         auto cmd = robot_->get_command_interface().at("torque");
-        cmd.insert(cmd.end(), controller_->get_internal_state().begin(), controller_->get_internal_state().end());
+        cmd.insert(cmd.end(), active_controller_->get_internal_state().begin(), active_controller_->get_internal_state().end());
         return cmd;
     }
 

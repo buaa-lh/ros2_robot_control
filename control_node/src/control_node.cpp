@@ -82,10 +82,9 @@ int main(int argc, char **argv)
               thread_priority);
         }
 
-        RCLCPP_INFO(cm->get_logger(), "%i.", cm->get_update_rate());
 
-        cm->init_robot();
-
+        //cm->wait_for_active_controller();
+        std::this_thread::sleep_for(std::chrono::microseconds(1000000));
         if (cm->is_simulation())
           cm->start_simulation();
         else

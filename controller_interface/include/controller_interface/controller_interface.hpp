@@ -27,7 +27,7 @@ namespace controller_interface
     void loarn_interface(hardware_interface::CommandInterface *command,
                          const hardware_interface::StateInterface *state);
 
-    rclcpp_lifecycle::State get_state() { node_->get_current_state(); }
+    rclcpp_lifecycle::State get_state() { return node_->get_current_state(); }
 
     std::shared_ptr<rclcpp_lifecycle::LifecycleNode> get_node() { return node_; }
 

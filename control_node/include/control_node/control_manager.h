@@ -22,7 +22,7 @@ namespace control_node
         ControlManager(std::shared_ptr<rclcpp::Executor> executor, const std::string &node_name, const std::string &name_space, const rclcpp::NodeOptions &option);
         ~ControlManager();
         int get_update_rate();
-        void init_robot();
+        void wait_for_active_controller();
         void shutdown_robot();
         void read(const rclcpp::Time &t, const rclcpp::Duration &period);
         void update(const rclcpp::Time &t, const rclcpp::Duration &period);
@@ -32,9 +32,8 @@ namespace control_node
         Eigen::MatrixXd simulation_external_force(double t);
         void simulation_observer(const std::vector<double> &x, double t);
         bool is_simulation();
-        std::vector<rclcpp::node_interfaces::NodeBaseInterface::SharedPtr> get_all_nodes();
     protected:
-        void robot_description_callback(std_msgs::msg::String::SharedPtr desp);
+        //void robot_description_callback(std_msgs::msg::String::SharedPtr desp);
         void robot_joint_command_callback(sensor_msgs::msg::JointState::SharedPtr js);
 
     protected:
@@ -42,7 +41,7 @@ namespace control_node
         pluginlib::UniquePtr<pluginlib::ClassLoader<controller_interface::ControllerInterface>> controller_loader_;
         std::shared_ptr<hardware_interface::RobotInterface> robot_;
         std::vector<controller_interface::ControllerInterface::SharedPtr> controllers_;
-        std::shared_ptr<controller_interface::ControllerInterface> controller_;
+        std::shared_ptr<controller_interface::ControllerInterface> active_controller_;
         std::shared_ptr<rclcpp::Executor> executor_;
         int update_rate_;
         Params params_;
@@ -55,7 +54,7 @@ namespace control_node
         rclcpp::Subscription<std_msgs::msg::String>::SharedPtr description_sub_;
         std::shared_ptr<realtime_tools::RealtimePublisher<sensor_msgs::msg::JointState>> real_time_publisher_;
  
-        std::mutex robot_desp_mutex_;
+        std::mutex mutex_;
         volatile bool is_new_cmd_available_;
         bool is_simulation_;
         bool is_sim_real_time_;

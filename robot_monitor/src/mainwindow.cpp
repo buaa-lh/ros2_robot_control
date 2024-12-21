@@ -11,7 +11,7 @@
 #include <fstream>
 #include "rclcpp/time.hpp"
 
-Subscriber::Subscriber(MainWindow *wnd) : Node("robot_monitor_subscriber"), mainWnd(wnd), start_time(std::chrono::nanoseconds(this->now().nanoseconds()))
+Subscriber::Subscriber(MainWindow *wnd) : Node("robot_monitor"), mainWnd(wnd), start_time(std::chrono::nanoseconds(this->now().nanoseconds()))
 {
     auto topic_callback =
         [this](sensor_msgs::msg::JointState::SharedPtr msg) -> void
