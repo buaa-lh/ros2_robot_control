@@ -13,16 +13,21 @@ namespace control_node
     {
         params_ = param_listener_->get_params();
         update_rate_ = params_.update_rate;
-        RCLCPP_INFO(this->get_logger(), "%d", update_rate_);
         joint_command_topic_name_ = this->get_parameter_or<std::string>("cmd_name", "gui/joint_state");
         is_simulation_ = this->get_parameter_or<bool>("simulation", true);
         is_sim_real_time_ = this->get_parameter_or<bool>("sim_real_time", true);
+        is_publish_joint_state_ = this->get_parameter_or<bool>("publish_joint_state", true);
+        if (is_publish_joint_state_ || is_simulation_)
+        {
+            joint_state_publisher_ = this->create_publisher<sensor_msgs::msg::JointState>("joint_states", rclcpp::SensorDataQoS());
+            real_time_publisher_ = std::make_shared<realtime_tools::RealtimePublisher<sensor_msgs::msg::JointState>>(joint_state_publisher_);
+        }
         command_receiver_ = this->create_subscription<sensor_msgs::msg::JointState>(joint_command_topic_name_, rclcpp::SensorDataQoS(),
                                                                                     std::bind(&ControlManager::robot_joint_command_callback, this, std::placeholders::_1));
-        joint_state_publisher_ = this->create_publisher<sensor_msgs::msg::JointState>("joint_states", rclcpp::SensorDataQoS());
-        // description_sub_ = this->create_subscription<std_msgs::msg::String>("robot_description", rclcpp::QoS(1).transient_local(),
-        // std::bind(&ControlManager::robot_description_callback, this, std::placeholders::_1));
-        real_time_publisher_ = std::make_shared<realtime_tools::RealtimePublisher<sensor_msgs::msg::JointState>>(joint_state_publisher_);
+        // joint_state_publisher_ = this->create_publisher<sensor_msgs::msg::JointState>("joint_states", rclcpp::SensorDataQoS());
+        //  description_sub_ = this->create_subscription<std_msgs::msg::String>("robot_description", rclcpp::QoS(1).transient_local(),
+        //  std::bind(&ControlManager::robot_description_callback, this, std::placeholders::_1));
+        // real_time_publisher_ = std::make_shared<realtime_tools::RealtimePublisher<sensor_msgs::msg::JointState>>(joint_state_publisher_);
 
         robot_description_ = this->get_parameter_or<std::string>("robot_description", "");
         if (robot_description_.empty())
@@ -39,7 +44,7 @@ namespace control_node
             hardware_class = hardware_class.substr(pos + 1);
             robot_->initialize(hardware_class, robot_description_);
             auto nodes = robot_->get_all_nodes();
-            for(auto & no : nodes)
+            for (auto &no : nodes)
                 executor_->add_node(no);
 
             for (auto name : controller_class)
@@ -82,7 +87,6 @@ namespace control_node
                     active_controller_ = controller;
                     break;
                 }
-                
             }
             std::this_thread::sleep_for(std::chrono::microseconds(1000000));
             RCLCPP_INFO(this->get_logger(), "waiting for controller");
@@ -111,16 +115,19 @@ namespace control_node
     void control_node::ControlManager::read(const rclcpp::Time &t, const rclcpp::Duration &period)
     {
         robot_->read(t, period);
-        auto states = std::make_shared<sensor_msgs::msg::JointState>();
-        states->name = robot_->get_joint_names();
-        states->position = robot_->get_state_interface().at("position");
-        states->velocity = robot_->get_state_interface().at("velocity");
-        states->effort = robot_->get_state_interface().at("effort");
-        states->header.stamp = t;
-        if (real_time_publisher_->trylock())
+        if (is_publish_joint_state_)
         {
-            real_time_publisher_->msg_ = *states;
-            real_time_publisher_->unlockAndPublish();
+            auto states = std::make_shared<sensor_msgs::msg::JointState>();
+            states->name = robot_->get_joint_names();
+            states->position = robot_->get_state_interface().at("position");
+            states->velocity = robot_->get_state_interface().at("velocity");
+            states->effort = robot_->get_state_interface().at("effort");
+            states->header.stamp = t;
+            if (real_time_publisher_->trylock())
+            {
+                real_time_publisher_->msg_ = *states;
+                real_time_publisher_->unlockAndPublish();
+            }
         }
     }
 

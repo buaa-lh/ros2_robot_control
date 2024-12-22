@@ -58,6 +58,7 @@ namespace control_node
         volatile bool is_new_cmd_available_;
         bool is_simulation_;
         bool is_sim_real_time_;
+        bool is_publish_joint_state_;
         std::chrono::time_point<std::chrono::steady_clock> sim_start_time_;
     };
 
