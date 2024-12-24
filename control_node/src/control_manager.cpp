@@ -20,7 +20,7 @@ namespace control_node
             joint_state_publisher_ = this->create_publisher<sensor_msgs::msg::JointState>("joint_states", rclcpp::SensorDataQoS());
             real_time_publisher_ = std::make_shared<realtime_tools::RealtimePublisher<sensor_msgs::msg::JointState>>(joint_state_publisher_);
         }
-        
+
         robot_description_ = this->get_parameter_or<std::string>("robot_description", "");
         if (robot_description_.empty())
             throw std::runtime_error("robot description file is empty!");
@@ -88,15 +88,13 @@ namespace control_node
 
     void ControlManager::shutdown_robot()
     {
-        RCLCPP_INFO(this->get_logger(), "shutting donw");
+        RCLCPP_INFO(this->get_logger(), "shutting down");
+        for (auto &controller : controllers_)
+        {
+            controller->finalize();
+        }
         robot_->finalize();
     }
-
-    // void ControlManager::robot_description_callback(std_msgs::msg::String::SharedPtr desp)
-    // {
-    //     std::lock_guard<std::mutex> guard(robot_desp_mutex_);
-    //     robot_description_ = desp->data;
-    // }
 
     void control_node::ControlManager::read(const rclcpp::Time &t, const rclcpp::Duration &period)
     {

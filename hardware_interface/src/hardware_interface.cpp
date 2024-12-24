@@ -36,7 +36,7 @@ namespace hardware_interface
         auto state = node_->configure();
         if (state.id() == lifecycle_msgs::msg::State::PRIMARY_STATE_INACTIVE) 
         {
-            RCLCPP_INFO(node_->get_logger(), "success");
+            RCLCPP_INFO(node_->get_logger(), "%s initialized", name.c_str());
             return 1;
         }
         return 0;
@@ -45,7 +45,7 @@ namespace hardware_interface
     {
         node_->shutdown();
     }
-   
+
 
     CallbackReturn HardwareInterface::on_configure(const rclcpp_lifecycle::State &previous_state)
     {

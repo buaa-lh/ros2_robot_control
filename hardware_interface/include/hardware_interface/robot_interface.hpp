@@ -16,7 +16,7 @@ namespace hardware_interface
   class RobotInterface : public HardwareInterface
   {
   public:
-    virtual ~RobotInterface() {}
+    ~RobotInterface() {}
     RobotInterface();
     int configure_urdf(const std::string &robot_description);
     const std::vector<std::string> &get_joint_names() { return joint_names_; }
@@ -27,7 +27,7 @@ namespace hardware_interface
     void robot_dynamics(const std::vector<double> &x, std::vector<double> &dx, double t,
                         std::function<Eigen::MatrixXd (double )> f_external, 
                         std::function<std::vector<double> (double, const std::vector<double> &, const Eigen::MatrixXd &)> controller);
-
+    void write(const rclcpp::Time &t, const rclcpp::Duration &period) override; 
     // for simulation only
     void write_state(const std::vector<double> &state, const std::vector<double> &force)
     {
@@ -36,7 +36,7 @@ namespace hardware_interface
       state_["force"] = force;
     }
 
-    virtual CallbackReturn on_configure(const rclcpp_lifecycle::State &previous_state);
+    CallbackReturn on_configure(const rclcpp_lifecycle::State &previous_state) override;
 
   protected:
     std::vector<std::string> joint_names_;

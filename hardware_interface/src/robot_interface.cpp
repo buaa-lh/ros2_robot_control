@@ -56,7 +56,12 @@ namespace hardware_interface
         else
             return CallbackReturn::ERROR;
     }
-
+    void RobotInterface::write(const rclcpp::Time &t, const rclcpp::Duration &period) 
+    {
+        state_["position"] = command_["position"];
+        state_["velocity"] = command_["velocity"];
+        state_["torque"] = command_["torque"];
+    }
     void RobotInterface::robot_dynamics(const std::vector<double> &x, std::vector<double> &dx, double t,
                                         std::function<Eigen::MatrixXd (double)> f_external,
                                         std::function<std::vector<double> (double, const std::vector<double> &, const Eigen::MatrixXd &)> controller)
