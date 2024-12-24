@@ -9,7 +9,7 @@ namespace controllers
         RobotController()
         {
         }
-        void update(const rclcpp::Time &t, const rclcpp::Duration &period) override
+        void update(const rclcpp::Time &/*t*/, const rclcpp::Duration &/*period*/) override
         {
             std::vector<double> &cmd_torque = (*command_)["torque"];
             int n = static_cast<int>(robot_.dof);

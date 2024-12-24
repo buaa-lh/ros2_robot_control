@@ -33,13 +33,13 @@ namespace controller_interface
         auto state = node_->configure();
         if (state.id() == lifecycle_msgs::msg::State::PRIMARY_STATE_INACTIVE)
         {
-            RCLCPP_INFO(node_->get_logger(), "success");
+            RCLCPP_INFO(node_->get_logger(), "%s initilized!", name.c_str());
             return 1;
         }
 
         return 0;
     }
-
+    
     void ControllerInterface::loarn_interface(hardware_interface::CommandInterface *command,
                                               const hardware_interface::StateInterface *state)
     {

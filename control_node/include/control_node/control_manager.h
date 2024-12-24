@@ -32,9 +32,6 @@ namespace control_node
         Eigen::MatrixXd simulation_external_force(double t);
         void simulation_observer(const std::vector<double> &x, double t);
         bool is_simulation();
-    protected:
-        //void robot_description_callback(std_msgs::msg::String::SharedPtr desp);
-        void robot_joint_command_callback(sensor_msgs::msg::JointState::SharedPtr js);
 
     protected:
         pluginlib::UniquePtr<pluginlib::ClassLoader<hardware_interface::RobotInterface>> hardware_loader_;
@@ -46,16 +43,11 @@ namespace control_node
         int update_rate_;
         Params params_;
         std::string robot_description_;
-        std::string joint_command_topic_name_;
         std::shared_ptr<ParamListener> param_listener_;
-        rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr command_receiver_;
-        realtime_tools::RealtimeBuffer<sensor_msgs::msg::JointState::SharedPtr> real_time_buffer_;
         rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_state_publisher_;
-        rclcpp::Subscription<std_msgs::msg::String>::SharedPtr description_sub_;
         std::shared_ptr<realtime_tools::RealtimePublisher<sensor_msgs::msg::JointState>> real_time_publisher_;
  
         std::mutex mutex_;
-        volatile bool is_new_cmd_available_;
         bool is_simulation_;
         bool is_sim_real_time_;
         bool is_publish_joint_state_;

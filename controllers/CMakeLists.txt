@@ -5,19 +5,43 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+
+
+set(THIS_PACKAGE_INCLUDE_DEPENDS
+  "rclcpp_lifecycle"
+  "ament_cmake"
+  "ament_cmake_ros"
+  "realtime_tools"
+  "hardware_interface"
+  "controller_interface"
+  "sensor_msgs"
+  "urdf"
+  "std_msgs"
+  "robot_math"
+  "pluginlib"
+)
+foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
+  find_package(${Dependency} REQUIRED)
+endforeach()
+
 # find dependencies
-find_package(ament_cmake REQUIRED)
-find_package(ament_cmake_ros REQUIRED)
-find_package(controller_interface REQUIRED)
-find_package(hardware_interface REQUIRED)
-find_package(robot_math REQUIRED)
-find_package(urdf REQUIRED)
-find_package(rclcpp_lifecycle)
-find_package(pluginlib REQUIRED)
+# find_package(ament_cmake REQUIRED)
+# find_package(ament_cmake_ros REQUIRED)
+# find_package(controller_interface REQUIRED)
+# find_package(hardware_interface REQUIRED)
+# find_package(robot_math REQUIRED)
+# find_package(urdf REQUIRED)
+# find_package(rclcpp_lifecycle)
+# find_package(realtime_tools)
+# find_package(pluginlib REQUIRED)
 
 pluginlib_export_plugin_description_file(controller_interface plugins.xml)
 
-add_library(controllers src/controllers.cpp)
+
+add_library(controllers 
+            src/controllers.cpp
+            src/forward_controller.cpp)
+
 add_library(controllers::controllers ALIAS controllers)
 target_compile_features(controllers PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
 target_include_directories(controllers PUBLIC
@@ -25,12 +49,7 @@ target_include_directories(controllers PUBLIC
   $<INSTALL_INTERFACE:include/${PROJECT_NAME}>)
 ament_target_dependencies(
   controllers
-  "controller_interface"
-  "pluginlib"
-  "hardware_interface"
-  "robot_math"
-  "urdf"
-  "rclcpp_lifecycle"
+  ${THIS_PACKAGE_INCLUDE_DEPENDS}
 )
 
 # Causes the visibility macros to use dllexport rather than dllimport,
@@ -49,7 +68,6 @@ install(
   RUNTIME DESTINATION bin
 )
 
-
 add_executable(test_controller src/test_controller.cpp)
 target_include_directories(test_controller PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -58,11 +76,7 @@ target_compile_features(test_controller PUBLIC c_std_99 cxx_std_17)  # Require C
 
 ament_target_dependencies(
   test_controller
-  "pluginlib"
-  "hardware_interface"
-  "controller_interface"
-  "robot_math"
-  "urdf"
+  ${THIS_PACKAGE_INCLUDE_DEPENDS}
 )
 
 install(TARGETS test_controller

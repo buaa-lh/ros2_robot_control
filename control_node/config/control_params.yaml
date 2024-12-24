@@ -1,12 +1,16 @@
 control_node:
   ros__parameters:
     update_rate: 500
-    cmd_name: gui/joint_states
     simulation: true
     sim_real_time: true
     publish_joint_state: true
     hardware: hardwares::SimulationRobot
     controllers: 
       - controllers::RobotController
+      - controllers::ForwardController
     
     active_controller: 0
+
+ForwardController:
+  ros__parameters:
+      cmd_name: gui/joint_states

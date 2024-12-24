@@ -8,12 +8,10 @@ namespace control_node
                                    const std::string &node_name, const std::string &name_space, const rclcpp::NodeOptions &option)
         : rclcpp::Node(node_name, name_space, option),
           executor_(executor),
-          param_listener_(std::make_shared<ParamListener>(this->get_node_parameters_interface())),
-          is_new_cmd_available_(false)
+          param_listener_(std::make_shared<ParamListener>(this->get_node_parameters_interface()))
     {
         params_ = param_listener_->get_params();
         update_rate_ = params_.update_rate;
-        joint_command_topic_name_ = this->get_parameter_or<std::string>("cmd_name", "gui/joint_state");
         is_simulation_ = this->get_parameter_or<bool>("simulation", true);
         is_sim_real_time_ = this->get_parameter_or<bool>("sim_real_time", true);
         is_publish_joint_state_ = this->get_parameter_or<bool>("publish_joint_state", true);
@@ -22,13 +20,7 @@ namespace control_node
             joint_state_publisher_ = this->create_publisher<sensor_msgs::msg::JointState>("joint_states", rclcpp::SensorDataQoS());
             real_time_publisher_ = std::make_shared<realtime_tools::RealtimePublisher<sensor_msgs::msg::JointState>>(joint_state_publisher_);
         }
-        command_receiver_ = this->create_subscription<sensor_msgs::msg::JointState>(joint_command_topic_name_, rclcpp::SensorDataQoS(),
-                                                                                    std::bind(&ControlManager::robot_joint_command_callback, this, std::placeholders::_1));
-        // joint_state_publisher_ = this->create_publisher<sensor_msgs::msg::JointState>("joint_states", rclcpp::SensorDataQoS());
-        //  description_sub_ = this->create_subscription<std_msgs::msg::String>("robot_description", rclcpp::QoS(1).transient_local(),
-        //  std::bind(&ControlManager::robot_description_callback, this, std::placeholders::_1));
-        // real_time_publisher_ = std::make_shared<realtime_tools::RealtimePublisher<sensor_msgs::msg::JointState>>(joint_state_publisher_);
-
+        
         robot_description_ = this->get_parameter_or<std::string>("robot_description", "");
         if (robot_description_.empty())
             throw std::runtime_error("robot description file is empty!");
@@ -105,12 +97,6 @@ namespace control_node
     //     std::lock_guard<std::mutex> guard(robot_desp_mutex_);
     //     robot_description_ = desp->data;
     // }
-
-    void ControlManager::robot_joint_command_callback(sensor_msgs::msg::JointState::SharedPtr js)
-    {
-        real_time_buffer_.writeFromNonRT(js);
-        is_new_cmd_available_ = true;
-    }
 
     void control_node::ControlManager::read(const rclcpp::Time &t, const rclcpp::Duration &period)
     {

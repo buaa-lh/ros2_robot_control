@@ -14,9 +14,9 @@ namespace controller_interface
     using SharedPtr = std::shared_ptr<ControllerInterface>;
     virtual ~ControllerInterface() {}
     ControllerInterface();
-    const std::vector<double> & get_internal_state() { return internal_state_;} 
+    const std::vector<double> &get_internal_state() { return internal_state_; }
     // for simulation only
-    void write_state(std::vector<double>::const_iterator s,  std::vector<double>::const_iterator e) 
+    void write_state(std::vector<double>::const_iterator s, std::vector<double>::const_iterator e)
     {
       std::copy(s, e, internal_state_.begin());
     }
@@ -44,6 +44,19 @@ namespace controller_interface
     virtual CallbackReturn on_deactivate(const rclcpp_lifecycle::State &previous_state);
 
     virtual CallbackReturn on_error(const rclcpp_lifecycle::State &previous_state);
+
+    template <typename ParameterT>
+    auto auto_declare(const std::string &name, const ParameterT &default_value)
+    {
+      if (!node_->has_parameter(name))
+      {
+        return node_->declare_parameter<ParameterT>(name, default_value);
+      }
+      else
+      {
+        return node_->get_parameter(name).get_value<ParameterT>();
+      }
+    }
 
   protected:
     std::shared_ptr<rclcpp_lifecycle::LifecycleNode> node_;
