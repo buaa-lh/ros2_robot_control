@@ -1,6 +1,7 @@
 #include "control_node/control_manager.h"
 #include <boost/numeric/odeint.hpp>
 #include "lifecycle_msgs/msg/state.hpp"
+using namespace std::chrono_literals;
 using namespace boost::numeric::odeint;
 namespace control_node
 {
@@ -8,7 +9,8 @@ namespace control_node
                                    const std::string &node_name, const std::string &name_space, const rclcpp::NodeOptions &option)
         : rclcpp::Node(node_name, name_space, option),
           executor_(executor),
-          param_listener_(std::make_shared<ParamListener>(this->get_node_parameters_interface()))
+          param_listener_(std::make_shared<ParamListener>(this->get_node_parameters_interface())),
+          running_(false)
     {
         params_ = param_listener_->get_params();
         update_rate_ = params_.update_rate;
@@ -20,7 +22,6 @@ namespace control_node
             joint_state_publisher_ = this->create_publisher<sensor_msgs::msg::JointState>("joint_states", rclcpp::SensorDataQoS());
             real_time_publisher_ = std::make_shared<realtime_tools::RealtimePublisher<sensor_msgs::msg::JointState>>(joint_state_publisher_);
         }
-
         robot_description_ = this->get_parameter_or<std::string>("robot_description", "");
         if (robot_description_.empty())
             throw std::runtime_error("robot description file is empty!");
@@ -55,14 +56,93 @@ namespace control_node
             RCLCPP_INFO(this->get_logger(), "%s", ex.what());
             throw ex;
         }
-        int active = this->get_parameter_or<int>("active_controller", 0);
-        active_controller_ = controllers_[active];
+        int active = this->get_parameter_or<int>("active_controller", -1);
+        if(active >= 0)
+            active_controller_ = controllers_[active];
+        
+         service_ = create_service<control_msgs::srv::ControlCommand>("control_command",
+                                                                      std::bind(&ControlManager::command_callback, this, std::placeholders::_1, std::placeholders::_2));
+
     }
 
     ControlManager::~ControlManager()
     {
     }
+    bool ControlManager::is_running()
+    {
+        bool running;
+        running_.get(running);
+        return running;
+    }
+    bool ControlManager::deactivate_controller()
+    {
+        bool running;
+        running_.get(running);
+        if(running)
+        {
+            RCLCPP_INFO(get_logger(), "cannot deactivate controller while running");
+            return false;
+        }
+        else
+        {
+             std::lock_guard<std::mutex> guard(activate_controller_mutex_);
+             if (active_controller_)
+             {
+                auto state = active_controller_->get_node()->deactivate();
+                if(state.id() != lifecycle_msgs::msg::State::PRIMARY_STATE_INACTIVE)
+                    return false;
+                active_controller_ = nullptr;
+             }
+        }
+        return true;
+    }
+    bool ControlManager::activate_controller(const std::string & controller_name)
+    {
+        bool running;
+        running_.get(running);
+        if(running)
+        {
+            RCLCPP_INFO(get_logger(), "cannot activate controller while running, stop running first");
+            return false;
+        }
+        for (auto &controller : controllers_)
+        {
+            if (controller->get_state().id() == lifecycle_msgs::msg::State::PRIMARY_STATE_INACTIVE && controller->get_node()->get_name() == controller_name)
+            {
+                std::lock_guard<std::mutex> guard(activate_controller_mutex_);
+                if (active_controller_)
+                {
+                    auto state = active_controller_->get_node()->deactivate();
+                    if(state.id() != lifecycle_msgs::msg::State::PRIMARY_STATE_INACTIVE)
+                        return false;
+                    
+                }
+                active_controller_ = controller;
+                auto state = active_controller_->get_node()->activate();
+                if(state.id() != lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
+                {
+                    active_controller_ = nullptr;
+                    return false;
+                }
+                return true;   
+            }
+        }
+        return false;
+    }
 
+    void ControlManager::command_callback(const std::shared_ptr<control_msgs::srv::ControlCommand::Request> request,
+                                             std::shared_ptr<control_msgs::srv::ControlCommand::Response> response)
+    {
+        std::string cmd = request->cmd_name;
+        response->result = false;
+        if(cmd == "activate")
+            response->result = activate_controller(request->cmd_params[0]);
+        if(cmd == "stop")
+        {
+            response->result = true;
+            running_.set(false);
+        }
+    }
     int ControlManager::get_update_rate()
     {
         return update_rate_;
@@ -70,20 +150,31 @@ namespace control_node
 
     void ControlManager::wait_for_active_controller()
     {
-        while (!active_controller_)
+        RCLCPP_INFO(get_logger(), "waiting for controller to be activated...");
+        std::cerr << "availabel controllers are:\n";
+        for (auto &controller : controllers_)
         {
-            for (auto &controller : controllers_)
-            {
-                if (controller->get_state().id() == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
-                {
-                    active_controller_ = controller;
-                    break;
-                }
-            }
-            std::this_thread::sleep_for(std::chrono::microseconds(1000000));
-            RCLCPP_INFO(this->get_logger(), "waiting for controller");
+            
+            std::cerr << controller->get_node()->get_name() << "\n";
         }
-        RCLCPP_INFO(get_logger(), "%s controller activated", active_controller_->get_node()->get_name());
+        do
+        {
+            while (!activate_controller_mutex_.try_lock())
+            {
+                std::this_thread::sleep_for(100ms);
+            }
+            if(active_controller_)
+            {
+                RCLCPP_INFO(get_logger(), "%s controller activated", active_controller_->get_node()->get_name());
+                activate_controller_mutex_.unlock();
+                break;
+            }
+            else
+            {
+                activate_controller_mutex_.unlock();
+            }
+        } while (rclcpp::ok());
+        running_.set(true);
     }
 
     void ControlManager::shutdown_robot()
@@ -156,8 +247,8 @@ namespace control_node
         std::copy(x.begin(), x.begin() + n, std::back_inserter(states->position));
         std::copy(x.begin() + n, x.begin() + 2 * n, std::back_inserter(states->velocity));
         states->effort = robot_->get_command_interface().at("torque");
-        auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<double>(t));
-        states->header.stamp = rclcpp::Time(time.count());
+        // auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<double>(t));
+        states->header.stamp = this->now();//rclcpp::Time(time.count());
         if (real_time_publisher_->trylock())
         {
             real_time_publisher_->msg_ = *states;
@@ -203,8 +294,8 @@ namespace control_node
         typedef controlled_runge_kutta<error_stepper_type> controlled_stepper_type;
         state_type x0{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
         sim_start_time_ = std::chrono::steady_clock::now();
-        auto dx = std::vector<double>();
         integrate_adaptive(make_controlled(1.0e-10, 1.0e-6, error_stepper_type()), dynamics, x0, 0.0, 10.0, 0.001, observer);
+        running_.set(false);
         // size_t steps = integrate_adaptive(runge_kutta4<std::vector<double>>(), dynamics, x0, 0.0, time, 0.01, observer);
     }
 

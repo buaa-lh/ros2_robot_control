@@ -81,41 +81,41 @@ int main(int argc, char **argv)
               cm->get_logger(), "Successful set up FIFO RT scheduling policy with priority %i.",
               thread_priority);
         }
-
-
-        //cm->wait_for_active_controller();
-        std::this_thread::sleep_for(std::chrono::microseconds(1000000));
-        if (cm->is_simulation())
-          cm->start_simulation();
-        else
+        while (rclcpp::ok())
         {
-          // for calculating sleep time
-          auto const period = std::chrono::nanoseconds(1'000'000'000 / cm->get_update_rate());
-          auto const cm_now = std::chrono::nanoseconds(cm->now().nanoseconds());
-          std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>
-              next_iteration_time{cm_now};
-
-          // for calculating the measured period of the loop
-          rclcpp::Time previous_time = cm->now();
-          while (rclcpp::ok())
+          cm->wait_for_active_controller();
+          if (cm->is_simulation())
+            cm->start_simulation();
+          else
           {
-            // calculate measured period
-            auto const current_time = cm->now();
-            auto const measured_period = current_time - previous_time;
-            previous_time = current_time;
+            // for calculating sleep time
+            auto const period = std::chrono::nanoseconds(1'000'000'000 / cm->get_update_rate());
+            auto const cm_now = std::chrono::nanoseconds(cm->now().nanoseconds());
+            std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>
+                next_iteration_time{cm_now};
 
-            // execute update loop
-            cm->read(current_time, measured_period);
-            cm->update(current_time, measured_period);
-            cm->write(current_time, measured_period);
+            // for calculating the measured period of the loop
+            rclcpp::Time previous_time = cm->now();
+            while (rclcpp::ok() && cm->is_running())
+            {
+              // calculate measured period
+              auto const current_time = cm->now();
+              auto const measured_period = current_time - previous_time;
+              previous_time = current_time;
 
-            // wait until we hit the end of the period
-            next_iteration_time += period;
-            // printf("%.6f\n", measured_period.nanoseconds()/1e9);
-            std::this_thread::sleep_until(next_iteration_time);
+              // execute update loop
+              cm->read(current_time, measured_period);
+              cm->update(current_time, measured_period);
+              cm->write(current_time, measured_period);
+
+              // wait until we hit the end of the period
+              next_iteration_time += period;
+              // printf("%.6f\n", measured_period.nanoseconds()/1e9);
+              std::this_thread::sleep_until(next_iteration_time);
+            }
           }
+          cm->deactivate_controller();
         }
-
         cm->shutdown_robot();
         // cm->shutdown_async_controllers_and_components();
       });

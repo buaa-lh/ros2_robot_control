@@ -3,6 +3,7 @@
 #include "control_node_parameters.hpp"
 #include "realtime_tools/realtime_buffer.h"
 #include "realtime_tools/realtime_publisher.h"
+#include "realtime_tools/realtime_box.h"
 #include "sensor_msgs/msg/joint_state.hpp"
 #include "urdf/model.h"
 #include "std_msgs/msg/string.hpp"
@@ -12,7 +13,7 @@
 #include "hardware_interface/robot_interface.hpp"
 #include "controller_interface/controller_interface.hpp"
 #include <pluginlib/class_loader.hpp>
-
+#include "control_msgs/srv/control_command.hpp"
 namespace control_node
 {
 
@@ -23,6 +24,10 @@ namespace control_node
         ~ControlManager();
         int get_update_rate();
         void wait_for_active_controller();
+        void command_callback(const std::shared_ptr<control_msgs::srv::ControlCommand::Request> request,
+                                std::shared_ptr<control_msgs::srv::ControlCommand::Response> response);
+        bool activate_controller(const std::string & controller_name);
+        bool deactivate_controller();
         void shutdown_robot();
         void read(const rclcpp::Time &t, const rclcpp::Duration &period);
         void update(const rclcpp::Time &t, const rclcpp::Duration &period);
@@ -32,7 +37,7 @@ namespace control_node
         Eigen::MatrixXd simulation_external_force(double t);
         void simulation_observer(const std::vector<double> &x, double t);
         bool is_simulation();
-
+        bool is_running();
     protected:
         pluginlib::UniquePtr<pluginlib::ClassLoader<hardware_interface::RobotInterface>> hardware_loader_;
         pluginlib::UniquePtr<pluginlib::ClassLoader<controller_interface::ControllerInterface>> controller_loader_;
@@ -46,11 +51,12 @@ namespace control_node
         std::shared_ptr<ParamListener> param_listener_;
         rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_state_publisher_;
         std::shared_ptr<realtime_tools::RealtimePublisher<sensor_msgs::msg::JointState>> real_time_publisher_;
- 
-        std::mutex mutex_;
+        rclcpp::Service<control_msgs::srv::ControlCommand>::SharedPtr service_;
+        std::mutex activate_controller_mutex_;
         bool is_simulation_;
         bool is_sim_real_time_;
         bool is_publish_joint_state_;
+        realtime_tools::RealtimeBox<bool> running_;
         std::chrono::time_point<std::chrono::steady_clock> sim_start_time_;
     };
 

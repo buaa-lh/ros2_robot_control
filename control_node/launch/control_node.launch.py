@@ -140,18 +140,19 @@ def generate_launch_description():
         return robot_monitor
     
     handlers = [
-        RegisterEventHandler(event_handler=OnProcessStart(target_action=robot_state_publisher,
-                                                          on_start=start_rviz_node)),
-        RegisterEventHandler(event_handler=OnProcessStart(target_action=rviz_node,
-                                                          on_start=start_monitor_node)),
-        RegisterEventHandler(event_handler=OnProcessStart(target_action=robot_monitor,
-                                                          on_start=start_control_node)),
+        # RegisterEventHandler(event_handler=OnProcessStart(target_action=robot_state_publisher,
+        #                                                   on_start=start_rviz_node)),
+        # RegisterEventHandler(event_handler=OnProcessStart(target_action=rviz_node,
+        #                                                   on_start=start_monitor_node)),
+        # RegisterEventHandler(event_handler=OnProcessStart(target_action=robot_monitor,
+        #                                                   on_start=start_control_node)),
     ]
 
     nodes = arguments + handlers + [
             robot_state_publisher,
-            # robot_state_publisher,
-            # control_node,
+            rviz_node,
+            robot_monitor,
+            control_node,
             ]
 
     return LaunchDescription(nodes)

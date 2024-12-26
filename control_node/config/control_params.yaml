@@ -9,7 +9,7 @@ control_node:
       - controllers::RobotController
       - controllers::ForwardController
     
-    active_controller: 0
+    active_controller: -1
 
 ForwardController:
   ros__parameters:
