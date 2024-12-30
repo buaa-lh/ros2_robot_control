@@ -6,8 +6,11 @@ namespace controller_interface
     {
     }
     int ControllerInterface::initialize(const std::string &name, const std::string &description,
-                                        const std::string &name_space, const rclcpp::NodeOptions &node_options)
+                                        const std::string &name_space)
     {
+        rclcpp::NodeOptions node_options;
+        node_options.allow_undeclared_parameters(true);
+        node_options.automatically_declare_parameters_from_overrides(true);
         description_ = description;
         node_ = std::make_shared<rclcpp_lifecycle::LifecycleNode>(
             name, name_space, node_options, false); // disable LifecycleNode service interfaces
@@ -53,7 +56,7 @@ namespace controller_interface
         node_->shutdown();
     }
 
-    CallbackReturn ControllerInterface::on_configure(const rclcpp_lifecycle::State &previous_state)
+    CallbackReturn ControllerInterface::on_configure(const rclcpp_lifecycle::State &/*previous_state*/)
     {
         if (!description_.empty())
         {
@@ -63,27 +66,27 @@ namespace controller_interface
         return CallbackReturn::ERROR;
     }
 
-    CallbackReturn ControllerInterface::on_cleanup(const rclcpp_lifecycle::State &previous_state)
+    CallbackReturn ControllerInterface::on_cleanup(const rclcpp_lifecycle::State &/*previous_state*/)
     {
         return CallbackReturn::SUCCESS;
     }
 
-    CallbackReturn ControllerInterface::on_shutdown(const rclcpp_lifecycle::State &previous_state)
+    CallbackReturn ControllerInterface::on_shutdown(const rclcpp_lifecycle::State &/*previous_state*/)
     {
         return CallbackReturn::SUCCESS;
     }
 
-    CallbackReturn ControllerInterface::on_activate(const rclcpp_lifecycle::State &previous_state)
+    CallbackReturn ControllerInterface::on_activate(const rclcpp_lifecycle::State &/*previous_state*/)
     {
         return CallbackReturn::SUCCESS;
     }
 
-    CallbackReturn ControllerInterface::on_deactivate(const rclcpp_lifecycle::State &previous_state)
+    CallbackReturn ControllerInterface::on_deactivate(const rclcpp_lifecycle::State &/*previous_state*/)
     {
         return CallbackReturn::SUCCESS;
     }
 
-    CallbackReturn ControllerInterface::on_error(const rclcpp_lifecycle::State &previous_state)
+    CallbackReturn ControllerInterface::on_error(const rclcpp_lifecycle::State &/*previous_state*/)
     {
         return CallbackReturn::SUCCESS;
     }

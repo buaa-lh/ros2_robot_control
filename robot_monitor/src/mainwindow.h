@@ -11,6 +11,8 @@
 #include <mutex>
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
+#include "std_msgs/msg/empty.hpp"
+#include "std_srvs/srv/empty.hpp"
 #include <chrono>
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -23,6 +25,7 @@ public:
     Subscriber(MainWindow* wnd);
 private:
     rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr subscription_;
+    rclcpp::Service<std_srvs::srv::Empty>::SharedPtr service_;
     MainWindow *mainWnd;
     std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> start_time;
 };

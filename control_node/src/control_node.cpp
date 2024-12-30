@@ -81,9 +81,11 @@ int main(int argc, char **argv)
               cm->get_logger(), "Successful set up FIFO RT scheduling policy with priority %i.",
               thread_priority);
         }
+       
         while (rclcpp::ok())
         {
-          cm->wait_for_active_controller();
+          cm->prepare_loop();
+          //cm->wait_for_active_controller(); now inside the prepare loop
           if (cm->is_simulation())
             cm->start_simulation();
           else
@@ -114,7 +116,7 @@ int main(int argc, char **argv)
               std::this_thread::sleep_until(next_iteration_time);
             }
           }
-          cm->deactivate_controller();
+          cm->end_loop();
         }
         cm->shutdown_robot();
         // cm->shutdown_async_controllers_and_components();

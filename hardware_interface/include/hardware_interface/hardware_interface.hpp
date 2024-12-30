@@ -15,13 +15,12 @@ namespace hardware_interface
     using SharedPtr = std::shared_ptr<HardwareInterface>;
     virtual ~HardwareInterface() {}
     HardwareInterface();
-    int initialize(const std::string &name, const std::string &description,
-                              const std::string &name_space = "", const rclcpp::NodeOptions &node_options = rclcpp::NodeOptions());
+    int initialize(const std::string &name, const std::string &description, const std::string &name_space = "");
 
     void finalize();
-    virtual void read(const rclcpp::Time &t, const rclcpp::Duration &period) {}
-    virtual void write(const rclcpp::Time &t, const rclcpp::Duration &period) {}
-    rclcpp_lifecycle::State get_state() { node_->get_current_state(); }
+    virtual void read(const rclcpp::Time &/*t*/, const rclcpp::Duration &/*period*/) {}
+    virtual void write(const rclcpp::Time &/*t*/, const rclcpp::Duration &/*period*/) {}
+    const rclcpp_lifecycle::State &get_state() { return node_->get_current_state(); }
     CommandInterface &get_command_interface() { return command_; }
     const StateInterface &get_state_interface() { return state_; }
     const std::vector<std::string> &get_state_names() { return state_names_; }

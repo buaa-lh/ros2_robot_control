@@ -20,14 +20,13 @@ namespace controller_interface
     {
       std::copy(s, e, internal_state_.begin());
     }
-    int initialize(const std::string &name, const std::string &description,
-                   const std::string &name_space = "", const rclcpp::NodeOptions &node_options = rclcpp::NodeOptions());
+    int initialize(const std::string &name, const std::string &description, const std::string &name_space = "");
     void finalize();
 
     void loarn_interface(hardware_interface::CommandInterface *command,
                          const hardware_interface::StateInterface *state);
 
-    rclcpp_lifecycle::State get_state() { return node_->get_current_state(); }
+    const rclcpp_lifecycle::State &get_state() { return node_->get_current_state(); }
 
     std::shared_ptr<rclcpp_lifecycle::LifecycleNode> get_node() { return node_; }
 

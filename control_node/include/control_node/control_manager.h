@@ -6,7 +6,6 @@
 #include "realtime_tools/realtime_box.h"
 #include "sensor_msgs/msg/joint_state.hpp"
 #include "urdf/model.h"
-#include "std_msgs/msg/string.hpp"
 #include "robot_math/robot_math.hpp"
 #include <functional>
 #include <chrono>
@@ -24,6 +23,8 @@ namespace control_node
         ~ControlManager();
         int get_update_rate();
         void wait_for_active_controller();
+        void prepare_loop();
+        void end_loop();
         void command_callback(const std::shared_ptr<control_msgs::srv::ControlCommand::Request> request,
                                 std::shared_ptr<control_msgs::srv::ControlCommand::Response> response);
         bool activate_controller(const std::string & controller_name);

@@ -26,6 +26,18 @@ Subscriber::Subscriber(MainWindow *wnd) : Node("robot_monitor"), mainWnd(wnd), s
     };
     subscription_ =
         this->create_subscription<sensor_msgs::msg::JointState>("joint_states", rclcpp::SensorDataQoS(), topic_callback);
+
+
+    auto service_callback =
+        [this](const std::shared_ptr<std_srvs::srv::Empty::Request> /*request*/,
+                                             std::shared_ptr<std_srvs::srv::Empty::Response> /*response*/) -> void
+    {
+        start_time = std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>(std::chrono::nanoseconds(this->now().nanoseconds()));
+        mainWnd->clear();
+    };
+
+    service_ =
+        this->create_service<std_srvs::srv::Empty>("~/clear", service_callback);
 }
 
 MainWindow::MainWindow(QWidget *parent)

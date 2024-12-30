@@ -21,6 +21,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   "sensor_msgs"
   "urdf"
   "std_msgs"
+  "std_srvs"
   "robot_math"
   "hardware_interface"
   "controller_interface"

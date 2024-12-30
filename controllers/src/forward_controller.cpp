@@ -21,7 +21,7 @@ namespace controllers
                 is_new_cmd_available_ = false;
             }
         }
-        CallbackReturn on_configure(const rclcpp_lifecycle::State &previous_state) override
+        CallbackReturn on_configure(const rclcpp_lifecycle::State &/*previous_state*/) override
         {
             node_->get_parameter_or<std::string>("cmd_name", joint_command_topic_name_, "gui/joint_state");
             command_receiver_ = node_->create_subscription<sensor_msgs::msg::JointState>(joint_command_topic_name_, rclcpp::SensorDataQoS(),

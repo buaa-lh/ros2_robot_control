@@ -7,10 +7,11 @@ namespace hardware_interface
     {
     }
 
-    int HardwareInterface::initialize(const std::string &name, const std::string &description,
-                                                 const std::string &name_space, const rclcpp::NodeOptions &node_options)
+    int HardwareInterface::initialize(const std::string &name, const std::string &description, const std::string &name_space)
     {
-
+        rclcpp::NodeOptions node_options;
+        node_options.allow_undeclared_parameters(true);
+        node_options.automatically_declare_parameters_from_overrides(true);
         description_ = description;
         node_ = std::make_shared<rclcpp_lifecycle::LifecycleNode>(
             name, name_space, node_options, false); // disable LifecycleNode service interfaces or, bad_alloc exception occur!
@@ -47,34 +48,34 @@ namespace hardware_interface
     }
 
 
-    CallbackReturn HardwareInterface::on_configure(const rclcpp_lifecycle::State &previous_state)
+    CallbackReturn HardwareInterface::on_configure(const rclcpp_lifecycle::State &/*previous_state*/)
     {
 
         return CallbackReturn::SUCCESS;
 
     }
 
-    CallbackReturn HardwareInterface::on_cleanup(const rclcpp_lifecycle::State &previous_state)
+    CallbackReturn HardwareInterface::on_cleanup(const rclcpp_lifecycle::State &/*previous_state*/)
     {
         return CallbackReturn::SUCCESS;
     }
 
-    CallbackReturn HardwareInterface::on_shutdown(const rclcpp_lifecycle::State &previous_state)
+    CallbackReturn HardwareInterface::on_shutdown(const rclcpp_lifecycle::State &/*previous_state*/)
     {
         return CallbackReturn::SUCCESS;
     }
 
-    CallbackReturn HardwareInterface::on_activate(const rclcpp_lifecycle::State &previous_state)
+    CallbackReturn HardwareInterface::on_activate(const rclcpp_lifecycle::State &/*previous_state*/)
     {
         return CallbackReturn::SUCCESS;
     }
 
-    CallbackReturn HardwareInterface::on_deactivate(const rclcpp_lifecycle::State &previous_state)
+    CallbackReturn HardwareInterface::on_deactivate(const rclcpp_lifecycle::State &/*previous_state*/)
     {
         return CallbackReturn::SUCCESS;
     }
 
-    CallbackReturn HardwareInterface::on_error(const rclcpp_lifecycle::State &previous_state)
+    CallbackReturn HardwareInterface::on_error(const rclcpp_lifecycle::State &/*previous_state*/)
     {
         return CallbackReturn::SUCCESS;
     }

@@ -8,9 +8,6 @@ control_node:
     controllers: 
       - controllers::RobotController
       - controllers::ForwardController
-    
-    active_controller: -1
-
 ForwardController:
   ros__parameters:
-      cmd_name: gui/joint_states
+    cmd_name: gui/joint_states

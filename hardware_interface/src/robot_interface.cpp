@@ -49,14 +49,14 @@ namespace hardware_interface
         }
         return nodes;
     }
-    CallbackReturn RobotInterface::on_configure(const rclcpp_lifecycle::State &previous_state)
+    CallbackReturn RobotInterface::on_configure(const rclcpp_lifecycle::State &/*previous_state*/)
     {
         if (configure_urdf(description_))
             return CallbackReturn::SUCCESS;
         else
             return CallbackReturn::ERROR;
     }
-    void RobotInterface::write(const rclcpp::Time &t, const rclcpp::Duration &period) 
+    void RobotInterface::write(const rclcpp::Time &/*t*/, const rclcpp::Duration &/*period*/) 
     {
         state_["position"] = command_["position"];
         state_["velocity"] = command_["velocity"];
