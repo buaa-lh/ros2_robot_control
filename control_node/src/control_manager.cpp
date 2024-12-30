@@ -245,8 +245,9 @@ namespace control_node
         std::copy(x.begin(), x.begin() + n, std::back_inserter(states->position));
         std::copy(x.begin() + n, x.begin() + 2 * n, std::back_inserter(states->velocity));
         states->effort = robot_->get_command_interface().at("torque");
-        // auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<double>(t));
-        states->header.stamp = this->now(); // rclcpp::Time(time.count());
+        auto time = sim_start_time_ + rclcpp::Duration(std::chrono::duration<double>(t));
+        //auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<double>(t));
+        states->header.stamp = time;//rclcpp::Time(nano_time.count());//this->now(); // ;
         if (real_time_publisher_->trylock())
         {
             real_time_publisher_->msg_ = *states;
@@ -255,8 +256,9 @@ namespace control_node
         // wait for real time elapse
         if (is_sim_real_time_)
         {
-            auto until = sim_start_time_ + std::chrono::duration<double>(t);
-            std::this_thread::sleep_until(until);
+            auto const nano_time = std::chrono::nanoseconds(time.nanoseconds());
+            std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> until_time{nano_time};
+            std::this_thread::sleep_until(until_time);
         }
     }
 
@@ -291,7 +293,7 @@ namespace control_node
         typedef runge_kutta_cash_karp54<state_type> error_stepper_type;
         // typedef controlled_runge_kutta<error_stepper_type> controlled_stepper_type;
         state_type x0{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-        sim_start_time_ = std::chrono::steady_clock::now();
+        sim_start_time_ = this->now();
         integrate_adaptive(make_controlled(1.0e-10, 1.0e-6, error_stepper_type()), dynamics, x0, 0.0, time, 0.001, observer);
         running_.set(false);
         // size_t steps = integrate_adaptive(runge_kutta4<std::vector<double>>(), dynamics, x0, 0.0, time, 0.01, observer);

@@ -85,9 +85,8 @@ int main(int argc, char **argv)
         while (rclcpp::ok())
         {
           cm->prepare_loop();
-          //cm->wait_for_active_controller(); now inside the prepare loop
           if (cm->is_simulation())
-            cm->start_simulation();
+            cm->start_simulation(10);
           else
           {
             // for calculating sleep time
@@ -119,7 +118,6 @@ int main(int argc, char **argv)
           cm->end_loop();
         }
         cm->shutdown_robot();
-        // cm->shutdown_async_controllers_and_components();
       });
 
   executor->add_node(cm);

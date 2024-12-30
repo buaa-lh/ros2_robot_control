@@ -57,6 +57,27 @@ This repository contains the following packages:
 2. robot_math
 
    It is a libray for robot mathematics, including dynamics and kinematics using twist and wrench representation. The codes in the matlab_code folder are generated using Matlab coder generation.
+   
 3. control_node
 
    It is a light-weight framework for robot control. The ros2_control frame is complicated so this version could save learning curves.
+
+4. control_msgs
+   
+   customized msgs used in this framework.
+
+5. controller_interface
+
+  controller interface.
+
+6. hardware_interface
+
+  hardware interface.
+
+7. controllers 
+
+  various controllers implementation.
+
+8. hardwares 
+
+  various hardwares implementation.

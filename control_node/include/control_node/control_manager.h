@@ -58,7 +58,7 @@ namespace control_node
         bool is_sim_real_time_;
         bool is_publish_joint_state_;
         realtime_tools::RealtimeBox<bool> running_;
-        std::chrono::time_point<std::chrono::steady_clock> sim_start_time_;
+        rclcpp::Time sim_start_time_;
     };
 
 }

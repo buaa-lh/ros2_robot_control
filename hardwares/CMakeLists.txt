@@ -16,7 +16,7 @@ find_package(rclcpp_lifecycle)
 
 pluginlib_export_plugin_description_file(hardware_interface plugins.xml)
 
-add_library(hardwares src/hardwares.cpp)
+add_library(hardwares src/simulation_robot.cpp)
 add_library(hardwares::hardwares ALIAS hardwares)
 target_compile_features(hardwares PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
 target_include_directories(hardwares PUBLIC

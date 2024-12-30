@@ -3,10 +3,10 @@
 #include"robot_math/robot_math.hpp"
 namespace controllers
 {
-    class RobotController : public controller_interface::ControllerInterface
+    class TorqueController : public controller_interface::ControllerInterface
     {
     public:
-        RobotController()
+        TorqueController()
         {
         }
         void update(const rclcpp::Time &/*t*/, const rclcpp::Duration &/*period*/) override
@@ -36,4 +36,4 @@ namespace controllers
 
 #include <pluginlib/class_list_macros.hpp>
 
-PLUGINLIB_EXPORT_CLASS(controllers::RobotController, controller_interface::ControllerInterface)
+PLUGINLIB_EXPORT_CLASS(controllers::TorqueController, controller_interface::ControllerInterface)

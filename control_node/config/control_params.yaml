@@ -2,11 +2,11 @@ control_node:
   ros__parameters:
     update_rate: 500
     simulation: true
-    sim_real_time: true
+    sim_real_time: false
     publish_joint_state: true
     hardware: hardwares::SimulationRobot
     controllers: 
-      - controllers::RobotController
+      - controllers::TorqueController
       - controllers::ForwardController
 ForwardController:
   ros__parameters:

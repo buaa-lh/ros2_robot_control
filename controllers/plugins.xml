@@ -1,5 +1,5 @@
 <library path="controllers">
-  <class type="controllers::RobotController" base_class_type="controller_interface::ControllerInterface">
+  <class type="controllers::TorqueController" base_class_type="controller_interface::ControllerInterface">
     <description>This is my RobotController plugin.</description>
   </class>
   <class type="controllers::ForwardController" base_class_type="controller_interface::ControllerInterface">

@@ -39,7 +39,7 @@ pluginlib_export_plugin_description_file(controller_interface plugins.xml)
 
 
 add_library(controllers 
-            src/controllers.cpp
+            src/torque_controller.cpp
             src/forward_controller.cpp)
 
 add_library(controllers::controllers ALIAS controllers)
