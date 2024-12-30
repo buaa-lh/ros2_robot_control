@@ -61,6 +61,14 @@ This repository contains the following packages:
 3. control_node
 
    It is a light-weight framework for robot control. The ros2_control frame is complicated so this version could save learning curves.
+   ```bash
+   ros2 launch control_node control_node.launch.py
+   ```
+   Open a terminal and activate an controller
+   ```bash
+   ros2 service call control_node/control_command control_msgs/srv/ControlCommand "{cmd_name: activate, cmd_params: TorqueController}"
+   ```
+   Above command call the service to activate a torque controller, you will see the robot begin to move under the gravity.
 
 4. control_msgs
    
