@@ -68,7 +68,7 @@ This repository contains the following packages:
    ```bash
    ros2 service call control_node/control_command control_msgs/srv/ControlCommand "{cmd_name: activate, cmd_params: TorqueController}"
    ```
-   Above command call the service to activate a torque controller, you will see the robot begin to move under the gravity.
+   Above command calls the service to activate a torque controller, you will see the robot begin to move under the gravity.
 
 4. control_msgs
    
