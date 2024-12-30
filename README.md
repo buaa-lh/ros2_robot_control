@@ -68,16 +68,16 @@ This repository contains the following packages:
 
 5. controller_interface
 
-  controller interface.
+   controller interface.
 
 6. hardware_interface
 
-  hardware interface.
+   hardware interface.
 
 7. controllers 
 
-  various controllers implementation.
+   various controllers implementation.
 
 8. hardwares 
 
-  various hardwares implementation.
+   various hardwares implementation.
