@@ -41,7 +41,7 @@ This repository contains the following packages:
 
    It is a gui interface which can display the real-time curves of joint states (position, velocity, effort, acceleration) published on the topic of "joint_states".
 
-   ![1730629536341](images/README/1730629536341.png)
+   ![screenshot1](screenshot1.png)
 
    You can run **robot_monitor** as a standalone node to visualize the robot's states.
 
