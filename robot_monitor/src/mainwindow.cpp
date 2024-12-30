@@ -195,6 +195,16 @@ void MainWindow::onTimer()
                 widgets[m]->getXAxis()->setRange(t1 - time_width, t1);
         }
     }
+    else
+    {
+        for (int m = 0; m < 4; m++)
+        {
+            for (int i = 0; i < 7; i++)
+            {
+                series[m][i]->clear();
+            }
+        }
+    }
 
     mtx.unlock();
 }

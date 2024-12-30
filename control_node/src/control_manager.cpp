@@ -60,7 +60,7 @@ namespace control_node
         if(active >= 0)
             active_controller_ = controllers_[active];
         
-         service_ = create_service<control_msgs::srv::ControlCommand>("control_command",
+         service_ = create_service<control_msgs::srv::ControlCommand>("~/control_command",
                                                                       std::bind(&ControlManager::command_callback, this, std::placeholders::_1, std::placeholders::_2));
 
     }
@@ -151,12 +151,12 @@ namespace control_node
     void ControlManager::wait_for_active_controller()
     {
         RCLCPP_INFO(get_logger(), "waiting for controller to be activated...");
-        std::cerr << "availabel controllers are:\n";
+        std::stringstream ss;
         for (auto &controller : controllers_)
         {
-            
-            std::cerr << controller->get_node()->get_name() << "\n";
+            ss << controller->get_node()->get_name() << " ";
         }
+        RCLCPP_INFO(get_logger(), "availabel controllers are: %s", ss.str().c_str());
         do
         {
             while (!activate_controller_mutex_.try_lock())
