@@ -17,7 +17,7 @@ int main(int argc, char **argv)
   int kSchedPriority = 50;
 
   std::shared_ptr<rclcpp::Executor> executor =
-      std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
+      std::make_shared<rclcpp::executors::StaticSingleThreadedExecutor>();
   std::string manager_node_name = "control_node";
 
   rclcpp::NodeOptions node_options;
@@ -119,7 +119,7 @@ int main(int argc, char **argv)
         }
         cm->shutdown_robot();
       });
-
+  
   executor->add_node(cm);
   executor->spin();
   cm_thread.join();

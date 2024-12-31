@@ -57,35 +57,31 @@ This repository contains the following packages:
 2. robot_math
 
    It is a libray for robot mathematics, including dynamics and kinematics using twist and wrench representation. The codes in the matlab_code folder are generated using Matlab coder generation.
-   
 3. control_node
 
    It is a light-weight framework for robot control. The ros2_control frame is complicated so this version could save learning curves.
+
    ```bash
    ros2 launch control_node control_node.launch.py
    ```
    Open a terminal and activate an controller
+
    ```bash
-   ros2 service call control_node/control_command control_msgs/srv/ControlCommand "{cmd_name: activate, cmd_params: TorqueController}"
+   ros2 service call control_node/control_command control_msgs/srv/ControlCommand "{cmd_name: activate, cmd_params: [TorqueController]}"
    ```
    Above command calls the service to activate a torque controller, you will see the robot begins to move under the gravity.
-
 4. control_msgs
-   
-   customized msgs used in this framework.
 
+   customized msgs used in this framework.
 5. controller_interface
 
    controller interface.
-
 6. hardware_interface
 
    hardware interface.
-
-7. controllers 
+7. controllers
 
    various controllers implementation.
-
-8. hardwares 
+8. hardwares
 
    various hardwares implementation.
