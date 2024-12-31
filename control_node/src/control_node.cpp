@@ -17,7 +17,7 @@ int main(int argc, char **argv)
   int kSchedPriority = 50;
 
   std::shared_ptr<rclcpp::Executor> executor =
-      std::make_shared<rclcpp::executors::StaticSingleThreadedExecutor>();
+      std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
   std::string manager_node_name = "control_node";
 
   rclcpp::NodeOptions node_options;
@@ -39,6 +39,7 @@ int main(int argc, char **argv)
   auto cm = std::make_shared<control_node::ControlManager>(
       executor, manager_node_name, "", node_options);
 
+  // /etc/security/limits.conf --> @realtime soft memlock 102400000 or, the bad_alloc exception occurs
   const bool lock_memory = cm->get_parameter_or<bool>("lock_memory", true);
   std::string message;
   if (lock_memory && !realtime_tools::lock_memory(message))
