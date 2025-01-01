@@ -6,12 +6,12 @@ int main(int argc, char** argv)
   // To avoid unused parameter warnings
   rclcpp::init(argc, argv);
 
-  pluginlib::ClassLoader<hardware_interface::RobotInterface> loader("hardware_interface", "hardware_interface::RobotInterface");
+  pluginlib::ClassLoader<hardware_interface::HardwareInterface> loader("hardware_interface", "hardware_interface::HardwareInterface");
 
   try
   {
-    std::shared_ptr<hardware_interface::HardwareInterface> my_hard = loader.createSharedInstance("hardwares::SimulationRobot");
-    my_hard->initialize("test", "");
+    std::shared_ptr<hardware_interface::HardwareInterface> my_hard = loader.createSharedInstance("hardwares::FTKunweiSensor");
+    my_hard->initialize("kunwei", "");
     rclcpp::spin(my_hard->get_node()->get_node_base_interface());
   }
   catch(pluginlib::PluginlibException& ex)

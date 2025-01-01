@@ -2,4 +2,7 @@
   <class type="hardwares::SimulationRobot" base_class_type="hardware_interface::RobotInterface">
     <description>This is my robot plugin.</description>
   </class>
+    <class type="hardwares::FTKunweiSensor" base_class_type="hardware_interface::HardwareInterface">
+    <description>This is kunwei sensor plugin.</description>
+  </class>
 </library>
