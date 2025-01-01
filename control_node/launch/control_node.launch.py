@@ -32,8 +32,8 @@ from launch.event_handlers.on_process_start import OnProcessStart
 
 def generate_launch_description():
 
-    # load_gripper_parameter_name = "load_gripper"
-    # load_gripper = LaunchConfiguration(load_gripper_parameter_name)
+    simulation_parameter_name = "simulation"
+    simulation = LaunchConfiguration(simulation_parameter_name)
 
     # ee_id_parameter_name = "ee_id"
     # ee_id = LaunchConfiguration(ee_id_parameter_name)
@@ -88,7 +88,7 @@ def generate_launch_description():
     control_node = Node(
         package="control_node",
         executable="control_node",
-        parameters=[params, {"robot_description": robot_description}],
+        parameters=[params, {"robot_description": robot_description, "simulation" : simulation}],
         # arguments=["--ros-args", "--params-file", params],
         output="both",
     )
@@ -101,12 +101,11 @@ def generate_launch_description():
             )
 
     arguments = [
-            # DeclareLaunchArgument(
-            #     load_gripper_parameter_name,
-            #     default_value="false",
-            #     description="Use end-effector if true. Default value is franka hand. "
-            #     "Robot is loaded without end-effector otherwise",
-            # ),
+            DeclareLaunchArgument(
+                simulation_parameter_name,
+                default_value="true",
+                description="is simulation ?",
+            ),
 
             # DeclareLaunchArgument(
             #     ee_id_parameter_name,

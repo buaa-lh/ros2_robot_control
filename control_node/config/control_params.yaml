@@ -1,6 +1,7 @@
 control_node:
   ros__parameters:
     update_rate: 500
+    lock_memory: true
     simulation: true
     sim_real_time: false
     publish_joint_state: true
@@ -8,6 +9,7 @@ control_node:
     controllers: 
       - controllers::TorqueController
       - controllers::ForwardController
+      - controllers::RealtimeTestController
 ForwardController:
   ros__parameters:
     cmd_name: gui/joint_states

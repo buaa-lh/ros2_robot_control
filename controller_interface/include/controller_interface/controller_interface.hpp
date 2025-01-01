@@ -12,15 +12,20 @@ namespace controller_interface
   {
   public:
     using SharedPtr = std::shared_ptr<ControllerInterface>;
+
     virtual ~ControllerInterface() {}
+
     ControllerInterface();
+
     const std::vector<double> &get_internal_state() { return internal_state_; }
+
     // for simulation only
     void write_state(std::vector<double>::const_iterator s, std::vector<double>::const_iterator e)
     {
       std::copy(s, e, internal_state_.begin());
     }
     int initialize(const std::string &name, const std::string &description, const std::string &name_space = "");
+
     void finalize();
 
     void loarn_interface(hardware_interface::CommandInterface *command,

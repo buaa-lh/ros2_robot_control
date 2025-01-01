@@ -10,7 +10,8 @@ namespace control_node
         : rclcpp::Node(node_name, name_space, option),
           executor_(executor),
           param_listener_(std::make_shared<ParamListener>(this->get_node_parameters_interface())),
-          running_(false)
+          running_(false),
+          async_mode_(true)
     {
         params_ = param_listener_->get_params();
         update_rate_ = params_.update_rate;
@@ -194,7 +195,7 @@ namespace control_node
             states->name = robot_->get_joint_names();
             states->position = robot_->get_state_interface().at("position");
             states->velocity = robot_->get_state_interface().at("velocity");
-            states->effort = robot_->get_state_interface().at("effort");
+            states->effort = robot_->get_state_interface().at("torque");
             states->header.stamp = t;
             if (real_time_publisher_->trylock())
             {
@@ -245,9 +246,9 @@ namespace control_node
         std::copy(x.begin(), x.begin() + n, std::back_inserter(states->position));
         std::copy(x.begin() + n, x.begin() + 2 * n, std::back_inserter(states->velocity));
         states->effort = robot_->get_command_interface().at("torque");
-        auto time = sim_start_time_ + rclcpp::Duration(std::chrono::duration<double>(t));
-        //auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<double>(t));
-        states->header.stamp = time;//rclcpp::Time(nano_time.count());//this->now(); // ;
+        auto time = sim_start_time_ + rclcpp::Duration::from_seconds(t); //(std::chrono::duration<double>(t));
+        // auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<double>(t));
+        states->header.stamp = time; // rclcpp::Time(nano_time.count());//this->now(); // ;
         if (real_time_publisher_->trylock())
         {
             real_time_publisher_->msg_ = *states;
@@ -313,6 +314,41 @@ namespace control_node
         auto cmd = robot_->get_command_interface().at("torque");
         cmd.insert(cmd.end(), active_controller_->get_internal_state().begin(), active_controller_->get_internal_state().end());
         return cmd;
+    }
+    void ControlManager::control_loop()
+    {
+        // for calculating sleep time
+        if (async_mode_)
+        {
+            auto const period = std::chrono::nanoseconds(1'000'000'000 / update_rate_);
+            auto const cm_now = std::chrono::nanoseconds(this->now().nanoseconds());
+            std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>
+                next_iteration_time{cm_now};
+
+            // for calculating the measured period of the loop
+            rclcpp::Time previous_time = this->now();
+            while (rclcpp::ok() && this->is_running())
+            {
+                // calculate measured period
+                auto const current_time = this->now();
+                auto const measured_period = current_time - previous_time;
+                previous_time = current_time;
+
+                // execute update loop
+                read(current_time, measured_period);
+                update(current_time, measured_period);
+                write(current_time, measured_period);
+
+                // wait until we hit the end of the period
+                next_iteration_time += period;
+                // printf("%.6f\n", measured_period.nanoseconds()/1e9);
+                std::this_thread::sleep_until(next_iteration_time);
+            }
+        }
+        else
+        {
+            // to do
+        }
     }
 
     void ControlManager::prepare_loop()

@@ -89,33 +89,7 @@ int main(int argc, char **argv)
           if (cm->is_simulation())
             cm->start_simulation(10);
           else
-          {
-            // for calculating sleep time
-            auto const period = std::chrono::nanoseconds(1'000'000'000 / cm->get_update_rate());
-            auto const cm_now = std::chrono::nanoseconds(cm->now().nanoseconds());
-            std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>
-                next_iteration_time{cm_now};
-
-            // for calculating the measured period of the loop
-            rclcpp::Time previous_time = cm->now();
-            while (rclcpp::ok() && cm->is_running())
-            {
-              // calculate measured period
-              auto const current_time = cm->now();
-              auto const measured_period = current_time - previous_time;
-              previous_time = current_time;
-
-              // execute update loop
-              cm->read(current_time, measured_period);
-              cm->update(current_time, measured_period);
-              cm->write(current_time, measured_period);
-
-              // wait until we hit the end of the period
-              next_iteration_time += period;
-              // printf("%.6f\n", measured_period.nanoseconds()/1e9);
-              std::this_thread::sleep_until(next_iteration_time);
-            }
-          }
+            cm->control_loop();
           cm->end_loop();
         }
         cm->shutdown_robot();

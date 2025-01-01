@@ -23,6 +23,7 @@ namespace control_node
         ~ControlManager();
         int get_update_rate();
         void wait_for_active_controller();
+        void control_loop();
         void prepare_loop();
         void end_loop();
         void command_callback(const std::shared_ptr<control_msgs::srv::ControlCommand::Request> request,
@@ -59,6 +60,7 @@ namespace control_node
         bool is_publish_joint_state_;
         realtime_tools::RealtimeBox<bool> running_;
         rclcpp::Time sim_start_time_;
+        bool async_mode_;
     };
 
 }
