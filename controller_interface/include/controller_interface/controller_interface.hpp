@@ -24,7 +24,9 @@ namespace controller_interface
     {
       std::copy(s, e, internal_state_.begin());
     }
-    int initialize(const std::string &name, const std::string &description, const std::string &name_space = "");
+    int initialize(const std::string &name, const std::string &description, 
+                   const std::string &name_space = "", const rclcpp::NodeOptions &options = rclcpp::NodeOptions(), 
+                   bool lcn_service = false);
 
     void finalize();
 

@@ -15,7 +15,9 @@ namespace hardware_interface
     using SharedPtr = std::shared_ptr<HardwareInterface>;
     virtual ~HardwareInterface() {}
     HardwareInterface();
-    int initialize(const std::string &name, const std::string &description, const std::string &name_space = "");
+    int initialize(const std::string &name, const std::string &description, const std::string &name_space = "",
+                   const rclcpp::NodeOptions &options = rclcpp::NodeOptions(), 
+                   bool lcn_service = false);
 
     void finalize();
     virtual void read(const rclcpp::Time &/*t*/, const rclcpp::Duration &/*period*/) {}

@@ -12,4 +12,3 @@ control_node:
       - controllers::RealtimeTestController
 ForwardController:
   ros__parameters:
-    cmd_name: gui/joint_states

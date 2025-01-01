@@ -6,14 +6,15 @@ namespace controller_interface
     {
     }
     int ControllerInterface::initialize(const std::string &name, const std::string &description,
-                                        const std::string &name_space)
+                                        const std::string &name_space, const rclcpp::NodeOptions &options,
+                                        bool lcn_service)
     {
-        rclcpp::NodeOptions node_options;
+        rclcpp::NodeOptions node_options(options);
         node_options.allow_undeclared_parameters(true);
         node_options.automatically_declare_parameters_from_overrides(true);
         description_ = description;
         node_ = std::make_shared<rclcpp_lifecycle::LifecycleNode>(
-            name, name_space, node_options, false); // disable LifecycleNode service interfaces
+            name, name_space, node_options, lcn_service); // disable LifecycleNode service interfaces
 
         node_->register_on_configure(
             std::bind(&ControllerInterface::on_configure, this, std::placeholders::_1));

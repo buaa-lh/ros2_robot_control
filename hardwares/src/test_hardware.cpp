@@ -1,5 +1,6 @@
 #include <pluginlib/class_loader.hpp>
 #include <hardware_interface/robot_interface.hpp>
+#include "rclcpp/rclcpp.hpp"
 
 int main(int argc, char** argv)
 {
@@ -11,7 +12,7 @@ int main(int argc, char** argv)
   try
   {
     std::shared_ptr<hardware_interface::HardwareInterface> my_hard = loader.createSharedInstance("hardwares::FTKunweiSensor");
-    my_hard->initialize("kunwei", "");
+    my_hard->initialize("kunwei", "", "", rclcpp::NodeOptions(), true);
     rclcpp::spin(my_hard->get_node()->get_node_base_interface());
   }
   catch(pluginlib::PluginlibException& ex)
