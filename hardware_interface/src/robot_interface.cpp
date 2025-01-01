@@ -6,7 +6,12 @@ namespace hardware_interface
     RobotInterface::RobotInterface() : dof_(0)
     {
     }
-
+    void RobotInterface::finalize()
+    {
+        for(auto &c : components)
+            c.second->get_node()->shutdown();
+        HardwareInterface::finalize();
+    }
     int RobotInterface::configure_urdf(const std::string &robot_description)
     {
         if (!robot_description.empty() && robot_model_.initString(robot_description))

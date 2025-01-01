@@ -19,7 +19,7 @@ namespace hardware_interface
                    const rclcpp::NodeOptions &options = rclcpp::NodeOptions(), 
                    bool lcn_service = false);
 
-    void finalize();
+    virtual void finalize();
     virtual void read(const rclcpp::Time &/*t*/, const rclcpp::Duration &/*period*/) {}
     virtual void write(const rclcpp::Time &/*t*/, const rclcpp::Duration &/*period*/) {}
     const rclcpp_lifecycle::State &get_state() { return node_->get_current_state(); }

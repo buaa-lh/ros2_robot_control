@@ -19,6 +19,7 @@ namespace hardware_interface
     ~RobotInterface() {}
     RobotInterface();
     int configure_urdf(const std::string &robot_description);
+    void finalize() override;
     const std::vector<std::string> &get_joint_names() { return joint_names_; }
     int get_dof() { return dof_; }
     const urdf::Model &get_urdf_model() { return robot_model_; }
