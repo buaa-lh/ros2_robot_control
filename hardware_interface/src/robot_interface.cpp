@@ -59,7 +59,7 @@ namespace hardware_interface
         if (configure_urdf(description_))
             return CallbackReturn::SUCCESS;
         else
-            return CallbackReturn::ERROR;
+            return CallbackReturn::FAILURE;
     }
     void RobotInterface::write(const rclcpp::Time &/*t*/, const rclcpp::Duration &/*period*/) 
     {
