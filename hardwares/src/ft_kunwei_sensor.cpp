@@ -203,7 +203,6 @@ namespace hardwares
 
                 return CallbackReturn::SUCCESS;
             }
-
             else
                 return CallbackReturn::FAILURE;
         }
@@ -216,10 +215,8 @@ namespace hardwares
                 thread_->join();
             }
             thread_ = nullptr;
-            if (write_command("\x43\xAA\x0D\x0A") > 0)
-                return CallbackReturn::SUCCESS;
-            else
-                return CallbackReturn::FAILURE;
+            write_command("\x43\xAA\x0D\x0A");
+            return CallbackReturn::SUCCESS;
         }
 
         CallbackReturn on_error(const rclcpp_lifecycle::State &previous_state) override

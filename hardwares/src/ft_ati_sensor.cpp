@@ -75,6 +75,7 @@ namespace hardwares
                 addr_.sin_addr.s_addr = inet_addr(description_.c_str()); // const char *ip = "192.168.124.12";
                 return CallbackReturn::SUCCESS;
             }
+            RCLCPP_WARN(node_->get_logger(), "IP empty! ATI sensor unconfiged!");
             return CallbackReturn::FAILURE;
         }
 
@@ -148,10 +149,8 @@ namespace hardwares
                 thread_->join();
             }
             thread_ = nullptr;
-            if (stop_sensing() > 0)
-                return CallbackReturn::SUCCESS;
-            else
-                return CallbackReturn::FAILURE;
+            stop_sensing();
+            return CallbackReturn::SUCCESS;
         }
 
         CallbackReturn on_error(const rclcpp_lifecycle::State &previous_state) override
