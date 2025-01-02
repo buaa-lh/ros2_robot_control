@@ -19,6 +19,7 @@ from launch.substitutions import Command, FindExecutable, PathJoinSubstitution, 
 
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
+from launch_ros.parameter_descriptions import ParameterValue
 
 import os
 import xacro
@@ -32,8 +33,8 @@ from launch.event_handlers.on_process_start import OnProcessStart
 
 def generate_launch_description():
 
-    simulation_parameter_name = "simulation"
-    simulation = LaunchConfiguration(simulation_parameter_name)
+    # simulation_parameter_name = "simulation"
+    # simulation = LaunchConfiguration(simulation_parameter_name)
 
     # ee_id_parameter_name = "ee_id"
     # ee_id = LaunchConfiguration(ee_id_parameter_name)
@@ -41,22 +42,82 @@ def generate_launch_description():
     # arm_id_parameter_name = "arm_id"
     # arm_id = LaunchConfiguration(arm_id_parameter_name)
 
-    rviz_file = os.path.join(
-        get_package_share_directory("control_node"),
-        "config",
-        "visualize_franka.rviz",
-    )
+    # rviz_file = os.path.join(
+    #     get_package_share_directory("control_node"),
+    #     "config",
+    #     "visualize_franka.rviz",
+    # )
 
-    
-    franka_xacro_filepath = os.path.join(
-        get_package_share_directory("franka_description"),
-        "robots",
-        "fr3",
-        "fr3" + ".urdf.xacro",
+    # rviz_file = PathJoinSubstitution(
+    #     [
+    #         FindPackageShare("control_node"),
+    #         "config",
+    #         "visualize_franka.rviz",
+    #     ]
+    # )
+    rviz_file = PathJoinSubstitution(
+                [
+                    FindPackageShare("ur_description"), 
+                    "rviz", 
+                    "view_robot.rviz"
+                ]
+            )
+
+    # robot_xacro_filepath = PathJoinSubstitution(
+    #     [
+    #         FindPackageShare("franka_description"),
+    #         "robots",
+    #         "fr3",
+    #         "fr3.urdf.xacro"
+    #     ]
+    # )
+    robot_xacro_filepath = PathJoinSubstitution(
+                [
+                    FindPackageShare("ur_robot_driver"), 
+                    "urdf", 
+                    "ur.urdf.xacro"
+                ]
+            )
+    ur_type = "ur5e"
+    kinematics_params_file = PathJoinSubstitution(
+                [
+                    FindPackageShare("ur_description"),
+                    "config",
+                    ur_type,
+                    "default_kinematics.yaml",
+                ]
+            )
+    robot_description_content = Command(
+        [
+            PathJoinSubstitution([FindExecutable(name="xacro")]),
+            " ",
+            robot_xacro_filepath,
+            " ",
+            "kinematics_params:=",
+            kinematics_params_file,
+            " ",
+            "name:=",
+            ur_type,
+            " ",
+            "ur_type:=",
+            ur_type,
+            " ",
+        ]
     )
-    robot_description = xacro.process_file(
-        franka_xacro_filepath, mappings={"hand": "false", "ee_id": "frank_hand"}
-    ).toprettyxml(indent="  ")
+    robot_description = ParameterValue(robot_description_content, value_type=str)
+    
+
+
+
+    # franka_xacro_filepath = os.path.join(
+    #     get_package_share_directory("franka_description"),
+    #     "robots",
+    #     "fr3",
+    #     "fr3" + ".urdf.xacro",
+    # )
+    # robot_description = xacro.process_file(
+    #     robot_xacro_filepath, mappings={"hand": "false", "ee_id": "frank_hand"}
+    # ).toprettyxml(indent="  ")
 
     # with open("urdf/fr3.urdf", "w") as f:
     #     f.write(robot_description)
@@ -88,7 +149,7 @@ def generate_launch_description():
     control_node = Node(
         package="control_node",
         executable="control_node",
-        parameters=[params, {"robot_description": robot_description, "simulation" : simulation}],
+        parameters=[params, {"robot_description": robot_description}],
         # arguments=["--ros-args", "--params-file", params],
         output="both",
     )
@@ -101,11 +162,11 @@ def generate_launch_description():
             )
 
     arguments = [
-            DeclareLaunchArgument(
-                simulation_parameter_name,
-                default_value="true",
-                description="is simulation ?",
-            ),
+            # DeclareLaunchArgument(
+            #     simulation_parameter_name,
+            #     default_value="true",
+            #     description="is simulation ?",
+            # ),
 
             # DeclareLaunchArgument(
             #     ee_id_parameter_name,

@@ -9,7 +9,8 @@ int main()
     std::ifstream fin("/home/wjc/ros2_ws/urdf/fr3.urdf");
     std::string description((std::istreambuf_iterator<char>(fin)),
                             std::istreambuf_iterator<char>());
-    Robot robot = urdf_to_robot(description);
+    std::vector<std::string> joint_names;
+    Robot robot = urdf_to_robot(description, joint_names);
     print_robot(robot);
     std::vector<double> q{1,2,3,4,5,6,7};
     std::vector<double> dq{1,2,3,4,5,6,7};

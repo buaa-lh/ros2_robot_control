@@ -10,7 +10,7 @@
 #include "urdf/model.h"
 #include "robot_math/coder_array.h"
 #include <iomanip>
-
+#include <queue>
 namespace robot_math
 {
 
@@ -125,9 +125,10 @@ namespace robot_math
         }
     }
 
-    Robot urdf_to_robot(const std::string &description, const std::string &link_name)
+    Robot urdf_to_robot(const std::string &description, std::vector<std::string> &joint_names, const std::string &link_name)
     {
         urdf::Model urdf_model;
+        Robot robot;
         urdf_model.initString(description);
         std::vector<urdf::LinkSharedPtr> bodies;
         urdf::LinkSharedPtr last_link;
@@ -136,6 +137,18 @@ namespace robot_math
             last_link = link.second;
             if (link.first == link_name)
                 break;
+        }
+        if(link_name == "") // find the farest link as the end-effector link
+        {
+            std::queue<urdf::LinkSharedPtr> que;
+            que.push(last_link);
+            while(!que.empty())
+            {
+                last_link = que.front();
+                que.pop();
+                for(auto l : last_link->child_links)
+                    que.push(l);
+            }
         }
         bodies.push_back(last_link);
         while (last_link = last_link->getParent())
@@ -156,13 +169,14 @@ namespace robot_math
         M.set_size(4, 4, n);
         coder::array<double, 2U> com;
         com.set_size(n, 3);
-        Robot robot;
+        
         Eigen::Map<Eigen::Matrix4d> base(robot.ME);
         Eigen::Map<Eigen::Matrix4d> TCP(robot.TCP);
         Eigen::Map<Eigen::Vector3d> gravity(robot.gravity);
         base = Eigen::Matrix4d::Identity();
         TCP = Eigen::Matrix4d::Identity();
         gravity = Eigen::Vector3d(0, 0, -9.8);
+        joint_names.clear();
         for (int i = 0; i < n; i++)
         {
             urdf::Pose pose = bodies[i]->parent_joint->parent_to_joint_origin_transform;
@@ -208,6 +222,7 @@ namespace robot_math
             else
             {
                 dof++;
+                joint_names.emplace_back(bodies[i]->parent_joint->name);
                 Eigen::Map<Eigen::Matrix3d> inert(&inertia[(dof - 1) * 9]);
                 inert = R * I * R.transpose() + m * (t.squaredNorm() * Eigen::Matrix3d::Identity() - t * t.transpose());
                 mass[dof - 1] = m;

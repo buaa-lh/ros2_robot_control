@@ -61,7 +61,7 @@ namespace controller_interface
     {
         if (!description_.empty())
         {
-            robot_ = robot_math::urdf_to_robot(description_);
+            robot_ = robot_math::urdf_to_robot(description_, joint_names_);
             return CallbackReturn::SUCCESS;
         }
         return CallbackReturn::ERROR;

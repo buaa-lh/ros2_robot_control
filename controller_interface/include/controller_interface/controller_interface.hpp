@@ -67,6 +67,7 @@ namespace controller_interface
   protected:
     std::shared_ptr<rclcpp_lifecycle::LifecycleNode> node_;
     std::string description_;
+    std::vector<std::string> joint_names_;
     robot_math::Robot robot_;
     hardware_interface::CommandInterface *command_;
     const hardware_interface::StateInterface *state_;

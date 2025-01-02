@@ -30,7 +30,7 @@ namespace robot_math
 		double gravity[3];
 		double TCP[16];
 	};
-	Robot urdf_to_robot(const std::string &description, const std::string &link_name = "");
+	Robot urdf_to_robot(const std::string &description, std::vector<std::string> &joint_names, const std::string &link_name = "");
 	void print_robot(const Robot &robot);
 	void print_code_array(const coder::array<double, 3> &array);
     // pose: first three are position

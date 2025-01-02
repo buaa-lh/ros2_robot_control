@@ -293,7 +293,7 @@ namespace control_node
         // Error stepper, used to create the controlled stepper
         typedef runge_kutta_cash_karp54<state_type> error_stepper_type;
         // typedef controlled_runge_kutta<error_stepper_type> controlled_stepper_type;
-        state_type x0{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+        state_type x0(2 * robot_->get_dof(), 0);
         sim_start_time_ = this->now();
         integrate_adaptive(make_controlled(1.0e-10, 1.0e-6, error_stepper_type()), dynamics, x0, 0.0, time, 0.001, observer);
         running_.set(false);
@@ -320,6 +320,7 @@ namespace control_node
         // for calculating sleep time
         if (async_mode_)
         {
+            RCLCPP_INFO(this->get_logger(), "enter loop %d", update_rate_);
             auto const period = std::chrono::nanoseconds(1'000'000'000 / update_rate_);
             auto const cm_now = std::chrono::nanoseconds(this->now().nanoseconds());
             std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>

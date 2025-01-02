@@ -16,15 +16,14 @@ namespace hardware_interface
     {
         if (!robot_description.empty() && robot_model_.initString(robot_description))
         {
-            robot_ = robot_math::urdf_to_robot(robot_description);
-            for (auto & j : robot_model_.joints_)
-            {
-                if (j.second->type != urdf::Joint::FIXED)
-                {
-                    joint_names_.push_back(j.first);
-                }
+
+            robot_ = robot_math::urdf_to_robot(robot_description, joint_names_);
+            for (auto & j : joint_names_)
+            { 
+                RCLCPP_INFO(node_->get_logger(), "%s", j.c_str());
             }
             dof_ = joint_names_.size();
+            RCLCPP_INFO(node_->get_logger(), "DOF: %d", dof_);
             state_names_.emplace_back("position");
             state_names_.emplace_back("velocity");
             state_names_.emplace_back("torque");
