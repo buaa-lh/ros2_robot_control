@@ -354,14 +354,26 @@ namespace control_node
 
     void ControlManager::prepare_loop()
     {
-        robot_->get_node()->activate();
-        wait_for_active_controller();
+        auto state = robot_->get_state();
+        while (rclcpp::ok() && state.id() != lifecycle_msgs::msg::State::PRIMARY_STATE_INACTIVE)
+        {
+            RCLCPP_WARN(this->get_logger(), "robot is not configued!");
+            std::this_thread::sleep_for(1s);
+        }
+        if (rclcpp::ok())
+        {
+            robot_->get_node()->activate();
+            wait_for_active_controller();
+        }
     }
 
     void ControlManager::end_loop()
     {
-        deactivate_controller();
-        robot_->get_node()->deactivate();
+        if (rclcpp::ok())
+        {
+            deactivate_controller();
+            robot_->get_node()->deactivate();
+        }
     }
 
 }

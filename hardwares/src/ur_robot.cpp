@@ -47,8 +47,16 @@ namespace hardwares
                     RCLCPP_ERROR(node_->get_logger(), "robot_ip is not set");
                     return CallbackReturn::FAILURE;
                 }
-                // control_interface_ = std::make_shared<ur_rtde::RTDEControlInterface>(robot_ip_);    
-                receive_interface_ = std::make_shared<ur_rtde::RTDEReceiveInterface>(robot_ip_);
+                // control_interface_ = std::make_shared<ur_rtde::RTDEControlInterface>(robot_ip_);  
+                try{
+                    receive_interface_ = std::make_shared<ur_rtde::RTDEReceiveInterface>(robot_ip_);
+                }
+                catch(std::exception & e)
+                {
+                    RCLCPP_ERROR(node_->get_logger(), "can not establish connection with UR robot with %s", robot_ip_.c_str());
+                    return CallbackReturn::FAILURE;
+                }  
+                
                 return CallbackReturn::SUCCESS;
             }
             
@@ -57,17 +65,21 @@ namespace hardwares
 
         CallbackReturn on_shutdown(const rclcpp_lifecycle::State &previous_state) override
         {
-            control_interface_->servoStop();
-            control_interface_->speedStop();
-            control_interface_->stopScript();
+            if(control_interface_)
+            {
+                control_interface_->servoStop();
+                control_interface_->speedStop();
+                control_interface_->stopScript();
+            }
+
             RCLCPP_ERROR(node_->get_logger(), "robot is shutting down ");
-            return CallbackReturn::SUCCESS;
+            return RobotInterface::on_shutdown(previous_state);
         }
 
         CallbackReturn on_activate(const rclcpp_lifecycle::State &previous_state) override
         {
             
-            return CallbackReturn::SUCCESS;
+            return RobotInterface::on_activate(previous_state);
         }
 
         CallbackReturn on_deactivate(const rclcpp_lifecycle::State &previous_state) override
@@ -75,7 +87,7 @@ namespace hardwares
             control_interface_->servoStop();
             control_interface_->speedStop();
             control_interface_->stopScript();
-            return CallbackReturn::SUCCESS;
+            return RobotInterface::on_deactivate(previous_state);
         }
 
     protected:

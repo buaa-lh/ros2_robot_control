@@ -1,17 +1,12 @@
 #include "hardware_interface/robot_interface.hpp"
-
+#include "lifecycle_msgs/msg/state.hpp"
 namespace hardware_interface
 {
 
     RobotInterface::RobotInterface() : dof_(0)
     {
     }
-    void RobotInterface::finalize()
-    {
-        for(auto &c : components)
-            c.second->get_node()->shutdown();
-        HardwareInterface::finalize();
-    }
+
     int RobotInterface::configure_urdf(const std::string &robot_description)
     {
         if (!robot_description.empty() && robot_model_.initString(robot_description))
@@ -47,7 +42,7 @@ namespace hardware_interface
     std::vector<rclcpp::node_interfaces::NodeBaseInterface::SharedPtr> RobotInterface::get_all_nodes()
     {
         std::vector<rclcpp::node_interfaces::NodeBaseInterface::SharedPtr> nodes{node_->get_node_base_interface()};
-        for(auto &p : components)
+        for(auto &p : components_)
         {
             nodes.push_back(p.second->get_node()->get_node_base_interface());
         }
@@ -55,11 +50,39 @@ namespace hardware_interface
     }
     CallbackReturn RobotInterface::on_configure(const rclcpp_lifecycle::State &/*previous_state*/)
     {
+        for(auto &c : components_)
+            if(c.second->initialize(c.first, description_) == 0)
+                return CallbackReturn::FAILURE;
+
         if (configure_urdf(description_))
             return CallbackReturn::SUCCESS;
         else
             return CallbackReturn::FAILURE;
     }
+
+    CallbackReturn RobotInterface::on_shutdown(const rclcpp_lifecycle::State &previous_state) 
+    {
+         for(auto &c : components_)
+            c.second->get_node()->shutdown();
+        return CallbackReturn::SUCCESS;
+    }
+
+    CallbackReturn RobotInterface::on_activate(const rclcpp_lifecycle::State &previous_state)
+    {
+        for(auto &c : components_)
+            if(c.second->get_node()->activate().id() != lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
+                return CallbackReturn::FAILURE;
+        return CallbackReturn::SUCCESS;
+    }
+    
+    CallbackReturn RobotInterface::on_deactivate(const rclcpp_lifecycle::State &previous_state)
+    {
+        for(auto &c : components_)
+            c.second->get_node()->deactivate();
+
+        return CallbackReturn::SUCCESS;
+    }
+
     void RobotInterface::write(const rclcpp::Time &/*t*/, const rclcpp::Duration &/*period*/) 
     {
         state_["position"] = command_["position"];

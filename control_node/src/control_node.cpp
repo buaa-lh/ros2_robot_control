@@ -92,9 +92,10 @@ int main(int argc, char **argv)
                     cm->control_loop();
                 cm->end_loop();
             }
+            std::cout << "shutttttt...................\n";
             cm->shutdown_robot();
+           
         });
-
     executor->add_node(cm);
     executor->spin();
     cm_thread.join();
