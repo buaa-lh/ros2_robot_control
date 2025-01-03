@@ -43,7 +43,7 @@ def generate_launch_description():
 
     robot_xacro_filepath = PathJoinSubstitution(
                 [
-                    FindPackageShare("ur_robot_driver"), 
+                    FindPackageShare("hardwares"), 
                     "urdf", 
                     "ur.urdf.xacro"
                 ]

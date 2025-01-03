@@ -85,7 +85,7 @@ install(TARGETS test_hardware
 
 
 install(
-          DIRECTORY launch config
+          DIRECTORY launch config urdf
           DESTINATION share/${PROJECT_NAME}
         )
 

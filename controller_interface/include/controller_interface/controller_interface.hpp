@@ -37,7 +37,7 @@ namespace controller_interface
 
     std::shared_ptr<rclcpp_lifecycle::LifecycleNode> get_node() { return node_; }
 
-    virtual void update(const rclcpp::Time &t, const rclcpp::Duration &period) = 0;
+    virtual void update(const rclcpp::Time &t, const rclcpp::Duration &period) {};
 
     virtual CallbackReturn on_configure(const rclcpp_lifecycle::State &previous_state);
 

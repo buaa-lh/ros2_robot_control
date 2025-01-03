@@ -5,7 +5,9 @@ control_node:
     simulation: false
     sim_real_time: false
     publish_joint_state: true
-    hardware: hardwares::SimulationRobot
+    hardware: hardwares::URRobot
     controllers: 
-      - controllers::ForwardController
-      - controllers::RealtimeTestController
+      - controllers::DummyController
+URRobot:
+  ros__parameters:
+    robot_ip: 192.168.31.201

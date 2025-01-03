@@ -8,7 +8,6 @@
 
 namespace hardwares
 {
-
     class FTKunweiSensor : public hardware_interface::HardwareInterface
     {
     public:

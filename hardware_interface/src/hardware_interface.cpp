@@ -2,7 +2,6 @@
 #include "lifecycle_msgs/msg/state.hpp"
 namespace hardware_interface
 {
-
     HardwareInterface::HardwareInterface()
     {
     }

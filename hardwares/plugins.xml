@@ -8,4 +8,7 @@
   <class type="hardwares::FTATISensor" base_class_type="hardware_interface::HardwareInterface">
     <description>This is ATI sensor plugin.</description>
   </class>
+  <class type="hardwares::URRobot" base_class_type="hardware_interface::RobotInterface">
+    <description>This is URRobot plugin.</description>
+  </class>
 </library>
