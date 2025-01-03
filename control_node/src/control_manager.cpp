@@ -270,6 +270,9 @@ namespace control_node
 
     void ControlManager::start_simulation(double time)
     {
+        if(!rclcpp::ok())
+            return;
+            
         typedef std::vector<double> state_type;
 
         auto f_external = std::bind(&ControlManager::simulation_external_force, this,

@@ -62,7 +62,7 @@ namespace hardware_interface
 
     CallbackReturn RobotInterface::on_shutdown(const rclcpp_lifecycle::State &previous_state) 
     {
-         for(auto &c : components_)
+        for(auto &c : components_)
             c.second->get_node()->shutdown();
         return CallbackReturn::SUCCESS;
     }
