@@ -8,10 +8,11 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(hardware_interface REQUIRED)
-find_package(rclcpp_lifecycle)
-find_package(rclcpp)
-find_package(urdf)
-find_package(robot_math)
+find_package(rclcpp_lifecycle REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(urdf REQUIRED)
+find_package(robot_math REQUIRED)
+find_package(geometry_msgs REQUIRED)
 
 add_library(controller_interface SHARED
             src/controller_interface.cpp)
@@ -30,6 +31,7 @@ ament_target_dependencies(controller_interface
     "rclcpp_lifecycle"
     "rclcpp"
     "hardware_interface"
+    "geometry_msgs"
   )
 
   

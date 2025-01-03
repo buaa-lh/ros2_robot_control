@@ -9,9 +9,11 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(urdf REQUIRED)
 find_package(robot_math REQUIRED)
-find_package(rclcpp_lifecycle)
-find_package(rclcpp)
-
+find_package(rclcpp_lifecycle REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(pluginlib REQUIRED)
 add_library(hardware_interface SHARED
             src/hardware_interface.cpp
             src/robot_interface.cpp)
@@ -30,6 +32,8 @@ ament_target_dependencies(
   "robot_math"
   "rclcpp_lifecycle"
   "rclcpp"
+  "geometry_msgs"
+  "pluginlib"
 )
 
 target_compile_definitions(hardware_interface PRIVATE "HARDWARE_INTERFACE_BUILDING_LIBRARY")

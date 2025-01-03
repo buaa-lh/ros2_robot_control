@@ -5,6 +5,7 @@ namespace hardware_interface
 
     RobotInterface::RobotInterface() : dof_(0)
     {
+        hardware_loader_ = std::make_unique<pluginlib::ClassLoader<hardware_interface::HardwareInterface>>("hardware_interface", "hardware_interface::HardwareInterface");
     }
 
     int RobotInterface::configure_urdf(const std::string &robot_description)
@@ -13,8 +14,8 @@ namespace hardware_interface
         {
 
             robot_ = robot_math::urdf_to_robot(robot_description, joint_names_);
-            for (auto & j : joint_names_)
-            { 
+            for (auto &j : joint_names_)
+            {
                 RCLCPP_INFO(node_->get_logger(), "%s", j.c_str());
             }
             dof_ = joint_names_.size();
@@ -39,59 +40,84 @@ namespace hardware_interface
         }
         return 0;
     }
+    void RobotInterface::receive_wrench(const geometry_msgs::msg::Wrench::UniquePtr &msg)
+    {
+        state_["force"] = {msg->force.x, msg->force.y, msg->force.z, msg->torque.x, msg->torque.y, msg->torque.z};
+    }
     std::vector<rclcpp::node_interfaces::NodeBaseInterface::SharedPtr> RobotInterface::get_all_nodes()
     {
         std::vector<rclcpp::node_interfaces::NodeBaseInterface::SharedPtr> nodes{node_->get_node_base_interface()};
-        for(auto &p : components_)
+        for (auto &p : components_)
         {
             nodes.push_back(p.second->get_node()->get_node_base_interface());
         }
         return nodes;
     }
-    CallbackReturn RobotInterface::on_configure(const rclcpp_lifecycle::State &/*previous_state*/)
+    CallbackReturn RobotInterface::on_configure(const rclcpp_lifecycle::State & /*previous_state*/)
     {
-        for(auto &c : components_)
-            if(c.second->initialize(c.first, description_) == 0)
+         if (!configure_urdf(description_))
+            return CallbackReturn::FAILURE;
+
+        std::string ft_sensor_class;
+        node_->get_parameter_or<std::string>("ft_sensor", ft_sensor_class, "");
+        try
+        {
+            if (!ft_sensor_class.empty())
+            {
+                auto sensor = hardware_loader_->createSharedInstance(ft_sensor_class);
+                int pos = ft_sensor_class.rfind(":");
+                ft_sensor_class = ft_sensor_class.substr(pos + 1);
+                components_[ft_sensor_class] = sensor;
+                wrench_receiver_ = node_->create_subscription<geometry_msgs::msg::Wrench>(ft_sensor_class+"/wrench", rclcpp::SensorDataQoS(),
+                                                                                  std::bind(&RobotInterface::receive_wrench, this, std::placeholders::_1));
+       
+            }
+        }
+        catch (pluginlib::PluginlibException &ex)
+        {
+            RCLCPP_INFO(node_->get_logger(), "%s", ex.what());
+            components_.clear();
+            return CallbackReturn::FAILURE;
+        }
+        for (auto &c : components_)
+            if (c.second->initialize(c.first, description_) == 0)
                 return CallbackReturn::FAILURE;
 
-        if (configure_urdf(description_))
-            return CallbackReturn::SUCCESS;
-        else
-            return CallbackReturn::FAILURE;
+        return CallbackReturn::SUCCESS;
     }
 
-    CallbackReturn RobotInterface::on_shutdown(const rclcpp_lifecycle::State &previous_state) 
+    CallbackReturn RobotInterface::on_shutdown(const rclcpp_lifecycle::State &previous_state)
     {
-        for(auto &c : components_)
+        for (auto &c : components_)
             c.second->get_node()->shutdown();
         return CallbackReturn::SUCCESS;
     }
 
     CallbackReturn RobotInterface::on_activate(const rclcpp_lifecycle::State &previous_state)
     {
-        for(auto &c : components_)
-            if(c.second->get_node()->activate().id() != lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
+        for (auto &c : components_)
+            if (c.second->get_node()->activate().id() != lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
                 return CallbackReturn::FAILURE;
         return CallbackReturn::SUCCESS;
     }
-    
+
     CallbackReturn RobotInterface::on_deactivate(const rclcpp_lifecycle::State &previous_state)
     {
-        for(auto &c : components_)
+        for (auto &c : components_)
             c.second->get_node()->deactivate();
 
         return CallbackReturn::SUCCESS;
     }
 
-    void RobotInterface::write(const rclcpp::Time &/*t*/, const rclcpp::Duration &/*period*/) 
+    void RobotInterface::write(const rclcpp::Time & /*t*/, const rclcpp::Duration & /*period*/)
     {
         state_["position"] = command_["position"];
         state_["velocity"] = command_["velocity"];
         state_["torque"] = command_["torque"];
     }
     void RobotInterface::robot_dynamics(const std::vector<double> &x, std::vector<double> &dx, double t,
-                                        std::function<Eigen::MatrixXd (double)> f_external,
-                                        std::function<std::vector<double> (double, const std::vector<double> &, const Eigen::MatrixXd &)> controller)
+                                        std::function<Eigen::MatrixXd(double)> f_external,
+                                        std::function<std::vector<double>(double, const std::vector<double> &, const Eigen::MatrixXd &)> controller)
     {
         int n = dof_;
         std::vector<double> q(n), dq(n), ddq(n);

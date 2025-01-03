@@ -52,7 +52,9 @@ namespace hardwares
         CallbackReturn on_configure(const rclcpp_lifecycle::State & /*previous_state*/) override
         {
             publisher_ = node_->create_publisher<geometry_msgs::msg::Wrench>("~/wrench", rclcpp::SensorDataQoS());
-            if (!description_.empty())
+            std::string sensor_ip;
+            node_->get_parameter_or<std::string>("sensor_ip", sensor_ip, "");
+            if (!sensor_ip.empty())
             {
                 handle_ = socket(AF_INET, SOCK_DGRAM, 0); /* Handle to UDP socket used to communicate with Net F/T. */
                 if (handle_ == -1)
@@ -72,7 +74,7 @@ namespace hardwares
                 memset(&addr_, 0, sizeof(addr_));
                 addr_.sin_family = AF_INET;
                 addr_.sin_port = htons(PORT);
-                addr_.sin_addr.s_addr = inet_addr(description_.c_str()); // const char *ip = "192.168.124.12";
+                addr_.sin_addr.s_addr = inet_addr(sensor_ip.c_str()); // const char *ip = "192.168.124.12";
                 return CallbackReturn::SUCCESS;
             }
             RCLCPP_WARN(node_->get_logger(), "IP empty! ATI sensor unconfiged!");

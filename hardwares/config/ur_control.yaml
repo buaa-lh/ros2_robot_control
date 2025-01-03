@@ -5,9 +5,15 @@ control_node:
     simulation: false
     sim_real_time: false
     publish_joint_state: true
-    hardware: hardwares::URRobot
+    robot: hardwares::URRobot
     controllers: 
       - controllers::DummyController
+      
 URRobot:
   ros__parameters:
     robot_ip: 192.168.31.201
+    ft_sensor: hardwares::FTATISensor
+
+FTATISensor:
+  ros__parameters:
+    sensor_ip: 192.168.124.12

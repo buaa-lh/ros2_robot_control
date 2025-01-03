@@ -41,7 +41,7 @@ namespace control_node
         bool is_simulation();
         bool is_running();
     protected:
-        pluginlib::UniquePtr<pluginlib::ClassLoader<hardware_interface::RobotInterface>> hardware_loader_;
+        pluginlib::UniquePtr<pluginlib::ClassLoader<hardware_interface::RobotInterface>> robot_loader_;
         pluginlib::UniquePtr<pluginlib::ClassLoader<controller_interface::ControllerInterface>> controller_loader_;
         std::shared_ptr<hardware_interface::RobotInterface> robot_;
         std::vector<controller_interface::ControllerInterface::SharedPtr> controllers_;

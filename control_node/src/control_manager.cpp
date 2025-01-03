@@ -27,20 +27,20 @@ namespace control_node
         if (robot_description_.empty())
             throw std::runtime_error("robot description file is empty!");
 
-        std::string hardware_class = this->get_parameter_or<std::string>("hardware", "");
+        std::string robot_class = this->get_parameter_or<std::string>("robot", "");
         std::vector<std::string> controller_class = this->get_parameter_or<std::vector<std::string>>("controllers", std::vector<std::string>());
-        hardware_loader_ = std::make_unique<pluginlib::ClassLoader<hardware_interface::RobotInterface>>("hardware_interface", "hardware_interface::RobotInterface");
+        robot_loader_ = std::make_unique<pluginlib::ClassLoader<hardware_interface::RobotInterface>>("hardware_interface", "hardware_interface::RobotInterface");
         controller_loader_ = std::make_unique<pluginlib::ClassLoader<controller_interface::ControllerInterface>>("controller_interface", "controller_interface::ControllerInterface");
         rclcpp::NodeOptions node_options;
         node_options.allow_undeclared_parameters(true);
         node_options.automatically_declare_parameters_from_overrides(true);
         try
         {
-            robot_ = hardware_loader_->createSharedInstance(hardware_class);
-            int pos = hardware_class.rfind(":");
-            hardware_class = hardware_class.substr(pos + 1);
+            robot_ = robot_loader_->createSharedInstance(robot_class);
+            int pos = robot_class.rfind(":");
+            robot_class = robot_class.substr(pos + 1);
 
-            robot_->initialize(hardware_class, robot_description_);
+            robot_->initialize(robot_class, robot_description_);
             auto nodes = robot_->get_all_nodes();
             for (auto &no : nodes)
                 executor_->add_node(no);
