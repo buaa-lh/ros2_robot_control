@@ -38,7 +38,7 @@ namespace controller_interface
         std::shared_ptr<rclcpp_lifecycle::LifecycleNode> get_node() { return node_; }
 
         // 需要子类实现的虚函数
-        virtual void update(const rclcpp::Time &t, const rclcpp::Duration &period) = 0;
+        virtual void update(const rclcpp::Time &t, const rclcpp::Duration &period) {};
 
         // 默认的虚函数实现
         // unconfigured -> inactive
@@ -72,7 +72,8 @@ namespace controller_interface
         std::shared_ptr<rclcpp_lifecycle::LifecycleNode> node_;
         std::string description_;
         // 机器人对象、命令接口、状态接口指针、内部状态
-        robot_math::Robot robot_;
+        std::vector<std::string> joint_names_;
+    robot_math::Robot robot_;
         hardware_interface::CommandInterface *command_;
         const hardware_interface::StateInterface *state_;
         std::vector<double> internal_state_; // e.g. integration of state

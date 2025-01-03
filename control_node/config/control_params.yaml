@@ -5,10 +5,8 @@ control_node:
     simulation: true
     sim_real_time: false
     publish_joint_state: true
-    hardware: hardwares::SimulationRobot
+    robot: hardwares::SimulationRobot
     controllers: 
       - controllers::TorqueController
       - controllers::ForwardController
       - controllers::RealtimeTestController
-ForwardController:
-  ros__parameters:

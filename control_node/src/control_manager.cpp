@@ -27,20 +27,20 @@ namespace control_node
         if (robot_description_.empty())
             throw std::runtime_error("robot description file is empty!");
 
-        std::string hardware_class = this->get_parameter_or<std::string>("hardware", "");
+        std::string robot_class = this->get_parameter_or<std::string>("robot", "");
         std::vector<std::string> controller_class = this->get_parameter_or<std::vector<std::string>>("controllers", std::vector<std::string>());
-        hardware_loader_ = std::make_unique<pluginlib::ClassLoader<hardware_interface::RobotInterface>>("hardware_interface", "hardware_interface::RobotInterface");
+        robot_loader_ = std::make_unique<pluginlib::ClassLoader<hardware_interface::RobotInterface>>("hardware_interface", "hardware_interface::RobotInterface");
         controller_loader_ = std::make_unique<pluginlib::ClassLoader<controller_interface::ControllerInterface>>("controller_interface", "controller_interface::ControllerInterface");
         rclcpp::NodeOptions node_options;
         node_options.allow_undeclared_parameters(true);
         node_options.automatically_declare_parameters_from_overrides(true);
         try
         {
-            robot_ = hardware_loader_->createSharedInstance(hardware_class);
-            int pos = hardware_class.rfind(":");
-            hardware_class = hardware_class.substr(pos + 1);
+            robot_ = robot_loader_->createSharedInstance(robot_class);
+            int pos = robot_class.rfind(":");
+            robot_class = robot_class.substr(pos + 1);
 
-            robot_->initialize(hardware_class, robot_description_);
+            robot_->initialize(robot_class, robot_description_);
             auto nodes = robot_->get_all_nodes();
             for (auto &no : nodes)
                 executor_->add_node(no);
@@ -270,6 +270,9 @@ namespace control_node
 
     void ControlManager::start_simulation(double time)
     {
+        if(!rclcpp::ok())
+            return;
+            
         typedef std::vector<double> state_type;
 
         auto f_external = std::bind(&ControlManager::simulation_external_force, this,
@@ -293,7 +296,7 @@ namespace control_node
         // Error stepper, used to create the controlled stepper
         typedef runge_kutta_cash_karp54<state_type> error_stepper_type;
         // typedef controlled_runge_kutta<error_stepper_type> controlled_stepper_type;
-        state_type x0{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+        state_type x0(2 * robot_->get_dof(), 0);
         sim_start_time_ = this->now();
         integrate_adaptive(make_controlled(1.0e-10, 1.0e-6, error_stepper_type()), dynamics, x0, 0.0, time, 0.001, observer);
         running_.set(false);
@@ -320,6 +323,7 @@ namespace control_node
         // for calculating sleep time
         if (async_mode_)
         {
+            RCLCPP_INFO(this->get_logger(), "enter loop %d", update_rate_);
             auto const period = std::chrono::nanoseconds(1'000'000'000 / update_rate_);
             auto const cm_now = std::chrono::nanoseconds(this->now().nanoseconds());
             std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>
@@ -353,14 +357,26 @@ namespace control_node
 
     void ControlManager::prepare_loop()
     {
-        robot_->get_node()->activate();
-        wait_for_active_controller();
+        auto state = robot_->get_state();
+        while (rclcpp::ok() && state.id() != lifecycle_msgs::msg::State::PRIMARY_STATE_INACTIVE)
+        {
+            RCLCPP_WARN(this->get_logger(), "robot is not configued!");
+            std::this_thread::sleep_for(1s);
+        }
+        if (rclcpp::ok())
+        {
+            robot_->get_node()->activate();
+            wait_for_active_controller();
+        }
     }
 
     void ControlManager::end_loop()
     {
-        deactivate_controller();
-        robot_->get_node()->deactivate();
+        if (rclcpp::ok())
+        {
+            deactivate_controller();
+            robot_->get_node()->deactivate();
+        }
     }
 
 }

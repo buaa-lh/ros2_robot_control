@@ -33,44 +33,45 @@ from launch.event_handlers.on_process_start import OnProcessStart
 
 def generate_launch_description():
 
-    # simulation_parameter_name = "simulation"
-    # simulation = LaunchConfiguration(simulation_parameter_name)
-
-    # ee_id_parameter_name = "ee_id"
-    # ee_id = LaunchConfiguration(ee_id_parameter_name)
-
-    # arm_id_parameter_name = "arm_id"
-    # arm_id = LaunchConfiguration(arm_id_parameter_name)
-
     rviz_file = PathJoinSubstitution(
-        [
-            FindPackageShare("control_node"),
-            "config",
-            "visualize_franka.rviz",
-        ]
-    )
-
+                [
+                    FindPackageShare("ur_description"), 
+                    "rviz", 
+                    "view_robot.rviz"
+                ]
+            )
 
     robot_xacro_filepath = PathJoinSubstitution(
-        [
-            FindPackageShare("franka_description"),
-            "robots",
-            "fr3",
-            "fr3.urdf.xacro"
-        ]
-    )
-
+                [
+                    FindPackageShare("hardwares"), 
+                    "urdf", 
+                    "ur.urdf.xacro"
+                ]
+            )
+    ur_type = "ur5e"
+    kinematics_params_file = PathJoinSubstitution(
+                [
+                    FindPackageShare("hardwares"),
+                    "config",
+                    "ur5e@B211",
+                    "kinematics.yaml",
+                ]
+            )
     robot_description_content = Command(
         [
             PathJoinSubstitution([FindExecutable(name="xacro")]),
             " ",
             robot_xacro_filepath,
             " ",
-            "hand:=",
-            "false",
+            "kinematics_params:=",
+            kinematics_params_file,
             " ",
-            "ee_id:=",
-            "frank_hand",
+            "name:=",
+            ur_type,
+            " ",
+            "ur_type:=",
+            ur_type,
+            " ",
         ]
     )
     robot_description = ParameterValue(robot_description_content, value_type=str)
@@ -82,9 +83,9 @@ def generate_launch_description():
 
     params = PathJoinSubstitution(
         [
-            FindPackageShare("control_node"),
+            FindPackageShare("hardwares"),
             "config",
-            "control_params.yaml",
+            "ur_control.yaml",
         ]
     )
   
@@ -124,48 +125,12 @@ def generate_launch_description():
             #     default_value="true",
             #     description="is simulation ?",
             # ),
-
-            # DeclareLaunchArgument(
-            #     ee_id_parameter_name,
-            #     default_value="franka_hand",
-            #     description="ID of the type of end-effector used. Supporter values: "
-            #     "none, franka_hand, cobot_pump",
-            # ),
-            # DeclareLaunchArgument(
-            #     arm_id_parameter_name,
-            #     default_value="fr3",
-            #     description="ID of the type of arm used. Supporter values: "
-            #     "fer, fr3, fp3",
-            # )
             ]
-    # already_started_nodes = set()
 
-    def start_robot_state_publisher_node(event: ProcessStarted, context: LaunchContext):
-        print('start sate publisher')
-        return robot_state_publisher
 
-    def start_control_node(event: ProcessStarted, context: LaunchContext):
-        print('start control node')
-        return control_node
+ 
 
-    def start_rviz_node(event: ProcessStarted, context: LaunchContext):
-        print('start control node')
-        return rviz_node
-    
-    def start_monitor_node(event: ProcessStarted, context: LaunchContext):
-        print('start control node')
-        return robot_monitor
-    
-    handlers = [
-        # RegisterEventHandler(event_handler=OnProcessStart(target_action=robot_state_publisher,
-        #                                                   on_start=start_rviz_node)),
-        # RegisterEventHandler(event_handler=OnProcessStart(target_action=rviz_node,
-        #                                                   on_start=start_monitor_node)),
-        # RegisterEventHandler(event_handler=OnProcessStart(target_action=robot_monitor,
-        #                                                   on_start=start_control_node)),
-    ]
-
-    nodes = arguments + handlers + [
+    nodes = arguments  + [
             robot_state_publisher,
             rviz_node,
             robot_monitor,

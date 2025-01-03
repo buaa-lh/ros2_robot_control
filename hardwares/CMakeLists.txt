@@ -12,9 +12,9 @@ find_package(hardware_interface REQUIRED)
 find_package(urdf REQUIRED)
 find_package(robot_math REQUIRED)
 find_package(pluginlib REQUIRED)
-find_package(rclcpp_lifecycle)
-find_package(lifecycle_msgs)
-find_package(geometry_msgs)
+find_package(rclcpp_lifecycle REQUIRED)
+find_package(lifecycle_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(ur_rtde REQUIRED)
 pluginlib_export_plugin_description_file(hardware_interface plugins.xml)
 
@@ -83,6 +83,11 @@ target_link_libraries(test_hardware
 install(TARGETS test_hardware
         DESTINATION lib/${PROJECT_NAME})
 
+
+install(
+          DIRECTORY launch config urdf
+          DESTINATION share/${PROJECT_NAME}
+        )
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

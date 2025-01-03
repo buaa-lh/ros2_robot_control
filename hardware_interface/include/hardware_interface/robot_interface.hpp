@@ -9,7 +9,8 @@
 #include "robot_math/robot_math.hpp"
 #include "urdf/model.h"
 #include <functional>
-
+#include "geometry_msgs/msg/wrench.hpp"
+#include "pluginlib/class_loader.hpp"
 namespace hardware_interface
 {
     class RobotInterface : public HardwareInterface
@@ -19,14 +20,10 @@ namespace hardware_interface
         RobotInterface();
         // 根据URDF文件配置 robot_, joint_names_, dof_, state_, command_, state_names_, command_names_
         int configure_urdf(const std::string &robot_description);
-        // 关闭和清理各个组件
-        void finalize() override;
-
         const std::vector<std::string> &get_joint_names() { return joint_names_; }
         int get_dof() { return dof_; }
         const urdf::Model &get_urdf_model() { return robot_model_; }
         const robot_math::Robot &get_robot_model() { return robot_; }
-
         std::vector<rclcpp::node_interfaces::NodeBaseInterface::SharedPtr> get_all_nodes();
         void robot_dynamics(const std::vector<double> &x, std::vector<double> &dx, double t,
                             std::function<Eigen::MatrixXd(double)> f_external,
@@ -39,16 +36,22 @@ namespace hardware_interface
             std::copy(state.begin() + dof_, state.begin() + 2 * dof_, state_["velocity"].begin());
             state_["force"] = force;
         }
-
+        void receive_wrench(const geometry_msgs::msg::Wrench::UniquePtr &msg);
+        CallbackReturn on_shutdown(const rclcpp_lifecycle::State &previous_state) override;
         CallbackReturn on_configure(const rclcpp_lifecycle::State &previous_state) override;
+        CallbackReturn on_activate(const rclcpp_lifecycle::State &previous_state) override;
+        CallbackReturn on_deactivate(const rclcpp_lifecycle::State &previous_state) override;
 
     protected:
+        std::unique_ptr<pluginlib::ClassLoader<hardware_interface::HardwareInterface>> hardware_loader_;
         std::vector<std::string> joint_names_;
         int dof_;
         urdf::Model robot_model_;
         robot_math::Robot robot_;
         // 组件map，包含各传感器和硬件
-        std::map<std::string, hardware_interface::HardwareInterface::SharedPtr> components;
+        std::map<std::string, hardware_interface::HardwareInterface::SharedPtr> components_;
+        rclcpp::Subscription<geometry_msgs::msg::Wrench>::SharedPtr wrench_receiver_;
+
     };
 
 } // namespace hardware

@@ -1,0 +1,19 @@
+control_node:
+  ros__parameters:
+    update_rate: 500
+    lock_memory: true
+    simulation: false
+    sim_real_time: false
+    publish_joint_state: true
+    robot: hardwares::URRobot
+    controllers: 
+      - controllers::DummyController
+      
+URRobot:
+  ros__parameters:
+    robot_ip: 192.168.31.201
+    ft_sensor: hardwares::FTATISensor
+
+FTATISensor:
+  ros__parameters:
+    sensor_ip: 192.168.124.12
